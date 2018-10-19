@@ -1,0 +1,16 @@
+connection dialog to choose port/baud
+
+need to figure out what error I'm seeing if I turn the printer off while still connected - it's causing a hang
+
+web cam
+firmware settings
+
+file upload - allow directory creation/travsersal
+allow upload to sd - also allow delete and select - also, the printer status report tells us if the sd is ready - should use that to enable/disable - update marlin on cuboid
+
+clear file selection
+
+Need to make sure when downloading the selected file for gcode monitor that subdirectories are represented in the job update.   Right now, I see origin and name, not path
+
+question - if I select a new file while paused, does the printer state move to operational, or does it stay paused?  This is a potential issue because I need to
+know when to enable print versus restart.
