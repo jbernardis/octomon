@@ -20,6 +20,7 @@ from firmwaremarlin import FirmwareDlg
 from fwsettings import FwSettings, FWC
 from settings import XCOUNT
 from connectdlg import ConnectDlg
+from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
 
 (FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
 (TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
@@ -76,6 +77,9 @@ class PrinterDlg(wx.Frame):
 		self.fwdlg = None
 		self.fwc = None
 		self.msgTimer = 0
+		
+		self.toReadBed = 0
+		self.toReadTool = 0
 
 		self.xySpeed = self.settings.getSetting("xySpeed", pname, 300)
 		self.zSpeed = self.settings.getSetting("zSpeed", pname, 300)
@@ -1000,6 +1004,20 @@ class PrinterDlg(wx.Frame):
 			evt = ErrorEvent(message="Unable to retrieve Bed state", terminate=True)
 			wx.PostEvent(self, evt)
 			updateBedTemps = False
+			
+		if rv == RC_CONNECT_TIMEOUT:
+			evt = ErrorEvent(message="Connection timeout retrieving Bed state", terminate=True)
+			wx.PostEvent(self, evt)
+			updateBedTemps = False
+			
+		if rv == RC_READ_TIMEOUT:
+			updateBedTemps = False
+			self.toReadBed += 1
+			if self.toReadBed > 10:
+				evt = ErrorEvent(message="Read Timeout retrieving Bed state", terminate=True)
+				wx.PostEvent(self, evt)
+		else:
+			self.toReadBed = 0
 
 		nzct = 0
 		if updateBedTemps:
@@ -1028,6 +1046,20 @@ class PrinterDlg(wx.Frame):
 			evt = ErrorEvent(message="Unable to retrieve tool state", terminate=True)
 			wx.PostEvent(self, evt)
 			updateToolTemps = False
+			
+		if rv == RC_CONNECT_TIMEOUT:
+			evt = ErrorEvent(message="Connection timeout retrieving tool state", terminate=True)
+			wx.PostEvent(self, evt)
+			updateBedTemps = False
+			
+		if rv == RC_READ_TIMEOUT:
+			updateBedTemps = False
+			self.toReadTool += 1
+			if self.toReadTool > 10:
+				evt = ErrorEvent(message="Read Timeout retrieving tool state", terminate=True)
+				wx.PostEvent(self, evt)
+		else:
+			self.toReadTool = 0
 
 		if updateToolTemps:
 			for tool in self.tools:
