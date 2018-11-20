@@ -43,7 +43,7 @@ MENU_VIEW_FIRMWARE = 204
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 
-MAX_READ_TIMEOUT = 10
+MAX_READ_TIMEOUTS = 15
 
 imageMapXY = [[10, 10, 50, 50, "HX"], [201, 192, 239, 230, "HY"], [201, 10, 239, 50, "HZ"], [10, 192, 50, 230, "HA"],
 			  [216, 86, 235, 156, "X+4"], [193, 86, 212, 156, "X+3"], [168, 86, 190, 156, "X+2"],
@@ -1008,18 +1008,18 @@ class PrinterDlg(wx.Frame):
 			wx.PostEvent(self, evt)
 			rv = None
 		else:
-			temps = json["temperature"]
-			updateTemps = True	
 			if rv == RC_CONNECT_TIMEOUT:
 				evt = ErrorEvent(message="Connection timeout retrieving Bed/Tool state", terminate=True)
 				wx.PostEvent(self, evt)
 				
-			if rv == RC_READ_TIMEOUT:
+			elif rv == RC_READ_TIMEOUT:
 				self.toRead += 1
 				if self.toRead > MAX_READ_TIMEOUTS:
 					evt = ErrorEvent(message="Read Timeout retrieving Bed/Tool state", terminate=True)
 					wx.PostEvent(self, evt)
 			else:
+				temps = json["temperature"]
+				updateTemps = True	
 				self.toRead = 0
 
 		nzct = 0
