@@ -367,7 +367,7 @@ class GFile:
 			return RC_CONNECT_TIMEOUT
 
 	def uploadString(self, s, n):
-		files = {'file': (n, io.StringIO.StringIO(s), 'application/octet-stream')}
+		files = {'file': (n, io.StringIO(s), 'application/octet-stream')}
 		location = "/local"
 		try:
 			r = requests.post(self.url + location, files=files, headers=self.header, timeout=5)
