@@ -26,6 +26,7 @@ from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
 (TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
 (LogEvent, EVT_LOGMSG) = wx.lib.newevent.NewEvent()		 # @UndefinedVariable
 (ErrorEvent, EVT_ERRMSG) = wx.lib.newevent.NewEvent()	   # @UndefinedVariable
+(GCodeEvent, EVT_GCODE) = wx.lib.newevent.NewEvent()	   # @UndefinedVariable
 
 labelWidth = 180 if os.name == 'posix' else 120
 fieldWidth = 200
@@ -561,6 +562,7 @@ class PrinterDlg(wx.Frame):
 		self.Bind(EVT_TERMMSG, self.evtTermMessage)
 		self.Bind(EVT_LOGMSG, self.evtLogMessage)
 		self.Bind(EVT_ERRMSG, self.evtErrorMessage)
+		self.Bind(EVT_GCODE, self.evtUpdateGCDlg)
 
 		self.startTimer()
 		rc, json = self.server.state(exclude=["temperature", "sd"])
@@ -1001,24 +1003,24 @@ class PrinterDlg(wx.Frame):
 		updateTemps = False
 		try:
 			rv, json = self.server.state()
-			temps = json["temperature"]
-			updateTemps = True	
 		except:
 			evt = ErrorEvent(message="Unable to retrieve Bed/Tool state", terminate=True)
 			wx.PostEvent(self, evt)
 			rv = None
-			
-		if rv == RC_CONNECT_TIMEOUT:
-			evt = ErrorEvent(message="Connection timeout retrieving Bed/Tool state", terminate=True)
-			wx.PostEvent(self, evt)
-			
-		if rv == RC_READ_TIMEOUT:
-			self.toRead += 1
-			if self.toRead > MAX_READ_TIMEOUTS:
-				evt = ErrorEvent(message="Read Timeout retrieving Bed/Tool state", terminate=True)
-				wx.PostEvent(self, evt)
 		else:
-			self.toRead = 0
+			temps = json["temperature"]
+			updateTemps = True	
+			if rv == RC_CONNECT_TIMEOUT:
+				evt = ErrorEvent(message="Connection timeout retrieving Bed/Tool state", terminate=True)
+				wx.PostEvent(self, evt)
+				
+			if rv == RC_READ_TIMEOUT:
+				self.toRead += 1
+				if self.toRead > MAX_READ_TIMEOUTS:
+					evt = ErrorEvent(message="Read Timeout retrieving Bed/Tool state", terminate=True)
+					wx.PostEvent(self, evt)
+			else:
+				self.toRead = 0
 
 		nzct = 0
 		if updateTemps:
@@ -1088,33 +1090,8 @@ class PrinterDlg(wx.Frame):
 			else:
 				self.stPrinterFile.SetLabel(self.printFileName)
 				if self.gcdlg is not None:
-					downloadGCode = True
-					try:
-						rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath)
-					except:
-						evt = ErrorEvent(message="Unable to download G Code File")
-						wx.PostEvent(self, evt)
-						self.GCode = None
-						try:
-							self.gcdlg.Destroy()
-						except:
-							pass
-						self.gcdlg = None
-						downloadGCode = False
-
-					if downloadGCode:
-						if rc < 400:
-							self.GCode = GCode(gc)
-							self.gcdlg.reloadGCode(self.GCode, self.printFileName)
-						else:
-							evt = ErrorEvent(message="Unable to download G Code File")
-							wx.PostEvent(self, evt)
-							self.GCode = None
-							try:
-								self.gcdlg.Destroy()
-							except:
-								pass
-							self.gcdlg = None
+					evt = GCodeEvent()
+					wx.PostEvent(self, evt)
 
 			self.enablePrintingControls()
 
@@ -1247,6 +1224,33 @@ class PrinterDlg(wx.Frame):
 		except:
 			pass
 
+	def evtUpdateGCDlg(self, evt):		
+		downloadGCode = True
+		try:
+			rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath)
+		except:
+			self.logMessage("Unable to download G Code File")
+			self.GCode = None
+			try:
+				self.gcdlg.Destroy()
+			except:
+				pass
+			self.gcdlg = None
+			downloadGCode = False
+
+		if downloadGCode:
+			if rc < 400:
+				self.GCode = GCode(gc)
+				self.gcdlg.reloadGCode(self.GCode, self.printFileName)
+			else:
+				self.logMessage("Unable to download G Code File")
+				self.GCode = None
+				try:
+					self.gcdlg.Destroy()
+				except:
+					pass
+				self.gcdlg = None
+		
 	def logMessage(self, msg, sec=10):
 		self.msgTimer = sec
 		self.SetStatusText(msg)
