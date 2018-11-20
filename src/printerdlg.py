@@ -42,6 +42,8 @@ MENU_VIEW_FIRMWARE = 204
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 
+MAX_READ_TIMEOUT = 10
+
 imageMapXY = [[10, 10, 50, 50, "HX"], [201, 192, 239, 230, "HY"], [201, 10, 239, 50, "HZ"], [10, 192, 50, 230, "HA"],
 			  [216, 86, 235, 156, "X+4"], [193, 86, 212, 156, "X+3"], [168, 86, 190, 156, "X+2"],
 			  [143, 104, 164, 136, "X+1"],
@@ -78,8 +80,7 @@ class PrinterDlg(wx.Frame):
 		self.fwc = None
 		self.msgTimer = 0
 		
-		self.toReadBed = 0
-		self.toReadTool = 0
+		self.toRead = 0
 
 		self.xySpeed = self.settings.getSetting("xySpeed", pname, 300)
 		self.zSpeed = self.settings.getSetting("zSpeed", pname, 300)
@@ -997,35 +998,35 @@ class PrinterDlg(wx.Frame):
 			if self.msgTimer == 0:
 				self.SetStatusText("")
 
-		updateBedTemps = True	
+		updateTemps = False
 		try:
-			rv, json = self.server.bed.state()
+			rv, json = self.server.state()
+			temps = json["temperature"]
+			updateTemps = True	
 		except:
-			evt = ErrorEvent(message="Unable to retrieve Bed state", terminate=True)
+			evt = ErrorEvent(message="Unable to retrieve Bed/Tool state", terminate=True)
 			wx.PostEvent(self, evt)
-			updateBedTemps = False
+			rv = None
 			
 		if rv == RC_CONNECT_TIMEOUT:
-			evt = ErrorEvent(message="Connection timeout retrieving Bed state", terminate=True)
+			evt = ErrorEvent(message="Connection timeout retrieving Bed/Tool state", terminate=True)
 			wx.PostEvent(self, evt)
-			updateBedTemps = False
 			
 		if rv == RC_READ_TIMEOUT:
-			updateBedTemps = False
-			self.toReadBed += 1
-			if self.toReadBed > 10:
-				evt = ErrorEvent(message="Read Timeout retrieving Bed state", terminate=True)
+			self.toRead += 1
+			if self.toRead > MAX_READ_TIMEOUTS:
+				evt = ErrorEvent(message="Read Timeout retrieving Bed/Tool state", terminate=True)
 				wx.PostEvent(self, evt)
 		else:
-			self.toReadBed = 0
+			self.toRead = 0
 
 		nzct = 0
-		if updateBedTemps:
+		if updateTemps:
 			self.currentTemps = {}
 			if rv < 400:
 				try:
-					t = "%7.1f / %7.1f" % (json['bed']['actual'], json['bed']['target'])
-					self.currentTemps['bed'] = {'actual': json['bed']['actual'], 'target': json['bed']['target']}
+					t = "%7.1f / %7.1f" % (temps['bed']['actual'], temps['bed']['target'])
+					self.currentTemps['bed'] = {'actual': temps['bed']['actual'], 'target': temps['bed']['target']}
 				except:
 					t = "- / -"
 					self.currentTemps['bed'] = {'actual': 0, 'target': 0}
@@ -1039,34 +1040,11 @@ class PrinterDlg(wx.Frame):
 			self.bedHeater.setTarget(t)
 			nzct = 1 if t != 0 else 0
 
-		updateToolTemps = True
-		try:
-			rv, json = self.server.tool.state()
-		except:
-			evt = ErrorEvent(message="Unable to retrieve tool state", terminate=True)
-			wx.PostEvent(self, evt)
-			updateToolTemps = False
-			
-		if rv == RC_CONNECT_TIMEOUT:
-			evt = ErrorEvent(message="Connection timeout retrieving tool state", terminate=True)
-			wx.PostEvent(self, evt)
-			updateBedTemps = False
-			
-		if rv == RC_READ_TIMEOUT:
-			updateBedTemps = False
-			self.toReadTool += 1
-			if self.toReadTool > 10:
-				evt = ErrorEvent(message="Read Timeout retrieving tool state", terminate=True)
-				wx.PostEvent(self, evt)
-		else:
-			self.toReadTool = 0
-
-		if updateToolTemps:
 			for tool in self.tools:
 				if rv < 400:
 					try:
-						t = "%7.1f / %7.1f" % (json[tool]['actual'], json[tool]['target'])
-						self.currentTemps[tool] = {'actual': json[tool]['actual'], 'target': json[tool]['target']}
+						t = "%7.1f / %7.1f" % (temps[tool]['actual'], temps[tool]['target'])
+						self.currentTemps[tool] = {'actual': temps[tool]['actual'], 'target': temps[tool]['target']}
 					except:
 						t = "- / -"
 						self.currentTemps[tool] = {'actual': 0, 'target': 0}

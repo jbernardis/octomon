@@ -7,10 +7,9 @@ import pprint
 
 from opclient import Client
 
-TIMEOUT = 0.7
+TIMEOUT = 0.3
 RC_READ_TIMEOUT = 598
 RC_CONNECT_TIMEOUT = 599
-
 
 class PrintHead:
 	def __init__(self, printer):
