@@ -46,7 +46,7 @@ class Settings:
             elif v == "false":
                 return False
 
-            return "\"%s\"" % v
+            return eval("\"%s\"" % v)
 
     def setSetting(self, setting, val, section="global"):
         try:

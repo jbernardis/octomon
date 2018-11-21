@@ -3,6 +3,7 @@ Created on May 4, 2018
 
 @author: Jeff
 """
+import os
 import wx
 
 LOGLIMIT = 300
@@ -185,13 +186,16 @@ class TerminalDlg(wx.Frame):
     def onBSave(self, evt):
         wildcard = "Log File |*.log;*.LOG"
         dlg = wx.FileDialog(
-            self, message="Save as ...", defaultDir=".",
+            self, message="Save as ...",
+            defaultDir=self.settings.getSetting("lastLogDirectory", dftValue="."),
             defaultFile="", wildcard=wildcard, style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
 
         val = dlg.ShowModal()
 
         if val == wx.ID_OK:
-            path = dlg.GetPath()
+            path = dlg.GetPath().encode('ascii', 'ignore').decode("utf-8") 
+            dpath = os.path.dirname(path)
+            self.settings.setSetting("lastLogDirectory", dpath)
 
             if self.tcLog.SaveFile(path):
                 self.parent.logMessage("Log successfully saved to %s" % path)

@@ -5,7 +5,6 @@ Created on May 4, 2018
 """
 import os
 import wx.lib
-import pprint
 
 from imagemap import ImageMap
 from heater import Heater
@@ -598,7 +597,6 @@ class PrinterDlg(wx.Frame):
 		rc = dlg.ShowModal()
 		if rc == wx.ID_OK:
 			path = dlg.GetPath().encode('ascii', 'ignore').decode("utf-8") 
-
 			dpath = os.path.dirname(path)
 			pprint.pprint(dpath)
 			self.settings.setSetting("lastDirectory", dpath)

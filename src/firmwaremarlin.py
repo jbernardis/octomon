@@ -121,6 +121,7 @@ class FirmwareDlg(wx.Frame):
         self.working = FwSettings()
         self.printerName = pname
         self.exitDlg = cbexit
+        self.settings = self.parent.settings
 
         self.eepromFileName = "eeprom.%s.marlin" % pname
         rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom)
@@ -326,14 +327,17 @@ class FirmwareDlg(wx.Frame):
     def onLoadProf(self, event):
         dlg = wx.FileDialog(
             self, message="Choose a firmware file",
-            defaultDir=os.getcwd(),
+            defaultDir=self.settings.getSetting("lastFwDirectory", dftValue="."),
             defaultFile="",
             wildcard=wildcard,
             style=wx.FD_OPEN | wx.FD_CHANGE_DIR
             )
 
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
+            path = dlg.GetPath().encode('ascii', 'ignore').decode("utf-8") 
+            dpath = os.path.dirname(path)
+            self.settings.setSetting("lastFwDirectory", dpath)
+
             rc, msg = getFirmwareProfile(path, self.working)
             if rc:
                 for k in self.itemMap.keys():
@@ -348,7 +352,7 @@ class FirmwareDlg(wx.Frame):
     def onSaveProf(self, event):
         dlg = wx.FileDialog(
             self, message="Save firmware profile as...",
-            defaultDir=os.getcwd(),
+            defaultDir=self.settings.getSetting("lastFwDirectory", dftValue="."),
             defaultFile="",
             wildcard=wildcard,
             style=wx.FD_SAVE | wx.FD_CHANGE_DIR | wx.FD_OVERWRITE_PROMPT
@@ -359,8 +363,10 @@ class FirmwareDlg(wx.Frame):
             dlg.Destroy()
             return
 
-        path = dlg.GetPath()
+        path = dlg.GetPath().encode('ascii', 'ignore').decode("utf-8") 
         dlg.Destroy()
+        dpath = os.path.dirname(path)
+        self.settings.setSetting("lastFwDirectory", dpath)
 
         ext = os.path.splitext(os.path.basename(path))[1]
         if ext == "":
