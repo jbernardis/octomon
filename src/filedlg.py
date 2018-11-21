@@ -30,7 +30,7 @@ def mapHasPath(path, nl):
 
 
 class FileDlg(wx.Frame):
-	def __init__(self, parent, server, pname, fl, cb):
+	def __init__(self, parent, server, pname, cb):
 		wx.Frame.__init__(self, None, wx.ID_ANY, "File List: %s" % pname)
 		self.SetBackgroundColour("white")
 
@@ -43,22 +43,10 @@ class FileDlg(wx.Frame):
 		self.cb = cb
 
 		self.Bind(wx.EVT_CLOSE, self.onClose)
-
-		self.fmap = {}
-		for origin, ofl in fl.items():
-			self.fmap[origin] = []
-			for fn, dnurl in ofl:
-				pl = fn.split("/")
-				path = None
-				for p in pl:
-					if path is None:
-						parent = origin
-						path = p
-					else:
-						parent = path
-						path = path + "/" + p
-					if not mapHasPath(path, self.fmap[origin]):
-						self.fmap[origin].append(node(path, origin, parent, path == fn, dnurl))
+		
+		self.includeSd = self.settings.getSetting("filesd", dftValue=False)
+		
+		self.fmap = self.getFileMap()
 
 		self.tree = wx.TreeCtrl(self, wx.ID_ANY, size=(300, 200), style=wx.TR_HAS_BUTTONS)
 
@@ -77,7 +65,6 @@ class FileDlg(wx.Frame):
 		self.tree.SetItemImage(self.root, self.fldridx, wx.TreeItemIcon_Normal)
 		self.tree.SetItemImage(self.root, self.fldropenidx, wx.TreeItemIcon_Expanded)
 		
-		self.includeSd = self.settings.getSetting("filesd", dftValue=False)
 		self.populateTree()
 		
 
@@ -100,6 +87,10 @@ class FileDlg(wx.Frame):
 		self.bDownload = wx.BitmapButton(self, wx.ID_ANY, self.images.pngDownload, size=(48, 48))
 		self.bDownload.SetToolTip("Download file")
 		self.Bind(wx.EVT_BUTTON, self.onBDownload, self.bDownload)
+
+		self.bRefresh = wx.BitmapButton(self, wx.ID_ANY, self.images.pngRefresh, size=(48, 48))
+		self.bRefresh.SetToolTip("Refresh file list")
+		self.Bind(wx.EVT_BUTTON, self.onBRefresh, self.bRefresh)
 		
 		self.expandAll = self.settings.getSetting("fileexpandall", dftValue=True)
 		self.cbExpandAll = wx.CheckBox(self, wx.ID_ANY, "Expand all")
@@ -127,12 +118,14 @@ class FileDlg(wx.Frame):
 		
 		bsz = wx.BoxSizer(wx.HORIZONTAL)
 		bsz.Add(self.bSelect)
-		bsz.AddSpacer(20)
+		bsz.AddSpacer(10)
 		bsz.Add(self.bDownload)
-		bsz.AddSpacer(20)
+		bsz.AddSpacer(10)
 		bsz.Add(self.cbDelete, 1, wx.ALIGN_CENTER_VERTICAL, 0)
 		bsz.AddSpacer(3)
 		bsz.Add(self.bDelete)
+		bsz.AddSpacer(10)
+		bsz.Add(self.bRefresh)
 		sz.Add(bsz, 1, wx.ALIGN_CENTER, 0)
 		sz.AddSpacer(10)
 
@@ -145,6 +138,33 @@ class FileDlg(wx.Frame):
 		self.Fit()
 
 		self.Show()
+
+	def getFileMap(self):
+		try:
+			fl = self.server.gfile.listFiles(local=True, sd=self.includeSd, recursive=True)
+		except:
+			dlg = wx.MessageDialog(self.parent, "Unable to get file listing from printer",
+								   "Printer Error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return {}
+
+		fmap = {}
+		for origin, ofl in fl.items():
+			fmap[origin] = []
+			for fn, dnurl in ofl:
+				pl = fn.split("/")
+				path = None
+				for p in pl:
+					if path is None:
+						parent = origin
+						path = p
+					else:
+						parent = path
+						path = path + "/" + p
+					if not mapHasPath(path, fmap[origin]):
+						fmap[origin].append(node(path, origin, parent, path == fn, dnurl))
+		return fmap
 		
 	def populateTree(self):
 		for origin in sorted(self.fmap.keys()):
@@ -238,6 +258,20 @@ class FileDlg(wx.Frame):
 					 "path": self.selectedItem.path,
 					 "url": self.selectedItem.downloadUrl})
 			
+	def onBRefresh(self, evt):
+		self.tree.DeleteChildren(self.root)
+		self.getFileMap()
+		self.populateTree()
+		self.item = None
+		self.selectedItem = None
+		self.tree.ClearFocusedItem()
+		self.enableControls(False, False)
+		if self.expandAll:
+			self.tree.ExpandAll()
+		else:
+			self.tree.CollapseAll()
+			self.tree.Expand(self.root)
+			
 	def onCbExpandAll(self, evt):
 		self.expandAll = self.cbExpandAll.GetValue()
 		self.settings.setSetting("fileexpandall", str(self.expandAll))
@@ -252,7 +286,13 @@ class FileDlg(wx.Frame):
 		self.settings.setSetting("filesd", str(self.includeSd))
 		
 		self.tree.DeleteChildren(self.root)
+		
+		self.fmap = self.getFileMap()
 		self.populateTree()
+		self.item = None
+		self.selectedItem = None
+		self.tree.ClearFocusedItem()
+		self.enableControls(False, False)
 		if self.expandAll:
 			self.tree.ExpandAll()
 

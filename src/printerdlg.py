@@ -582,19 +582,7 @@ class PrinterDlg(wx.Frame):
 							   "plugin": self.pluginUpdate})
 
 	def MenuFileList(self, evt):
-		try:
-			fl = self.server.gfile.listFiles(local=True, sd=True, recursive=True)
-		except:
-			dlg = wx.MessageDialog(self, "Unable to get file listing from printer",
-								   "Printer Error", wx.OK | wx.ICON_ERROR)
-			dlg.ShowModal()
-			dlg.Destroy()
-			return
-
-		if fl is None:
-			return
-
-		self.fileDlg = FileDlg(self, self.server, self.pname, fl, self.dismissFileDlg)
+		self.fileDlg = FileDlg(self, self.server, self.pname, self.dismissFileDlg)
 
 	def MenuFileUpload(self, evt):
 		wildcard = "GCode (*.gcode)|*.gcode;*.GCODE|" \
