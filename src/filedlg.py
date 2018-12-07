@@ -70,10 +70,12 @@ class FileDlg(wx.Frame):
 
 		self.tree.Expand(self.root)
 		self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onTreeSelection, self.tree)
-
-		self.bSelect = wx.BitmapButton(self, wx.ID_ANY, self.images.pngSelect, size=(48, 48))
+		self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.onDoubleClick, self.tree)
+		
+		self.bSelect = wx.BitmapButton(self, wx.ID_ANY, self.images.pngPrinter, size=(48, 48))
 		self.bSelect.SetToolTip("Select file for printing")
 		self.Bind(wx.EVT_BUTTON, self.onBSelect, self.bSelect)
+		self.bSelect.SetDefault()
 
 		self.cbDelete = wx.CheckBox(self, wx.ID_ANY, "Delete")
 		self.cbDelete.SetToolTip("Enable Delete button")
@@ -208,6 +210,9 @@ class FileDlg(wx.Frame):
 			self.bDownload.Enable(False)
 
 	def onBSelect(self, evt):
+		self.selectFile()
+		
+	def selectFile(self):
 		if self.selectedItem:
 			self.cb({"action": "select",
 					 "origin": self.selectedItem.origin,
@@ -260,7 +265,7 @@ class FileDlg(wx.Frame):
 			
 	def onBRefresh(self, evt):
 		self.tree.DeleteChildren(self.root)
-		self.getFileMap()
+		self.fmap = self.getFileMap()
 		self.populateTree()
 		self.item = None
 		self.selectedItem = None
@@ -311,6 +316,9 @@ class FileDlg(wx.Frame):
 			self.selectedItem = itemData
 		else:
 			self.selectedItem = None
+			
+	def onDoubleClick(self, evt):
+		self.selectFile()
 
 	def onClose(self, evt):
 		self.cb({})
