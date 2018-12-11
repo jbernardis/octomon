@@ -1,5 +1,7 @@
 web cam
 firmware settings
+octoprint updates
+plugin updates
 
 file upload - allow directory creation/travsersal
 allow upload to sd - also allow delete and select - also, the printer status report tells us if the sd is ready - should use that to enable/disable - update marlin on cuboid

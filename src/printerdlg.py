@@ -1308,9 +1308,9 @@ class PrinterDlg(wx.Frame):
 				self.lastReportedHeightInfo = json['data']['heightMessage']
 			except:
 				self.lastReportedHeightInfo = None
-# 		else:
-# 			print ("plugin: %s" % json['plugin'])
-# 			pprint.pprint(json)
+		else:
+			print ("plugin: %s" % json['plugin'])
+			pprint.pprint(json)
 
 	def onImageClickXY(self, command):
 		try:
