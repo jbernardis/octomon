@@ -708,7 +708,7 @@ class PrinterDlg(wx.Frame):
 	def MenuViewWebcam(self, evt):
 		player = self.settings.getSetting("videoPlayer", dftValue="ffplay")
 		options = self.settings.getSetting("videoPlayerOptions", self.pname, dftValue=["-vf", "hflip,vflip"])
-		uri = self.settings.getSetting("webcamUri", dftValue="/webcam/?action=stream")
+		uri = self.settings.getSetting("webcamUri", dftValue="webcam/?action=stream")
 		cmdList = [player] + options + ["-window_title", "%s webcam" % self.pname, "http://%s/%s" % (self.ipAddr, uri)]
 		
 		if self.pWebcam is not None:
