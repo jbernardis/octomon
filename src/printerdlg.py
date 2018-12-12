@@ -5,6 +5,9 @@ Created on May 4, 2018
 """
 import os
 import wx.lib
+import subprocess
+
+import pprint
 
 from imagemap import ImageMap
 from heater import Heater
@@ -40,6 +43,7 @@ MENU_VIEW_TEMPERATURES = 201
 MENU_VIEW_GCODE = 202
 MENU_VIEW_TERMINAL = 203
 MENU_VIEW_FIRMWARE = 204
+MENU_VIEW_WEBCAM = 205
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 
@@ -61,7 +65,8 @@ imageMapE = [[11, 10, 46, 46, "Retr"], [11, 93, 46, 129, "Extr"]]
 
 class PrinterDlg(wx.Frame):
 	def __init__(self, parent, server, pname, settings, images):
-		wx.Frame.__init__(self, None, wx.ID_ANY, "%s - %s" % (pname, server.getIpAddr()))
+		self.ipAddr = server.getIpAddr()
+		wx.Frame.__init__(self, None, wx.ID_ANY, "%s - %s" % (pname, self.ipAddr))
 		self.SetBackgroundColour("white")
 
 		self.parent = parent
@@ -69,6 +74,7 @@ class PrinterDlg(wx.Frame):
 		self.pname = pname
 		self.settings = settings
 		self.images = images
+		self.pWebcam = None
 
 		self.flash = FwSettings()
 		self.collectingFw = False
@@ -160,6 +166,7 @@ class PrinterDlg(wx.Frame):
 		menu2.Append(MENU_VIEW_TEMPERATURES, "&Temperatures", "Graphcal display of temperatures")
 		menu2.Append(MENU_VIEW_GCODE, "&G Code", "Visually track G Code as it prints")
 		menu2.Append(MENU_VIEW_TERMINAL, "Ter&minal", "View commands set to the printer and their responses")
+		menu2.Append(MENU_VIEW_WEBCAM, "&Webcam", "Open a webcam viewing window")
 		menu2.Append(MENU_VIEW_FIRMWARE, "&Firmware", "View printer firmware settings")
 		menuBar.Append(menu2, "&View")
 		
@@ -175,6 +182,7 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuViewGCode, id=MENU_VIEW_GCODE)
 		self.Bind(wx.EVT_MENU, self.MenuViewTerminal, id=MENU_VIEW_TERMINAL)
 		self.Bind(wx.EVT_MENU, self.MenuViewFirmware, id=MENU_VIEW_FIRMWARE)
+		self.Bind(wx.EVT_MENU, self.MenuViewWebcam, id=MENU_VIEW_WEBCAM)
 		self.Bind(wx.EVT_MENU, self.MenuConnect, id=MENU_CONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
 
@@ -696,6 +704,17 @@ class PrinterDlg(wx.Frame):
 	def exitFwDlg(self):
 		self.fwdlg.Destroy()
 		self.fwdlg = None
+				
+	def MenuViewWebcam(self, evt):
+		player = self.settings.getSetting("videoPlayer", dftValue="ffplay")
+		options = self.settings.getSetting("videoPlayerOptions", self.pname, dftValue=["-vf", "hflip,vflip"])
+		uri = self.settings.getSetting("webcamUri", dftValue="/webcam/?action=stream")
+		cmdList = [player] + options + ["http://%s/%s" % (self.ipAddr, uri)]
+		
+		if self.pWebcam is not None:
+			self.pWebcam.kill()
+			
+		self.pWebcam = subprocess.Popen(cmdList, stderr=subprocess.DEVNULL)
 		
 	def MenuConnect(self, evt):
 		dftPort = self.settings.getSetting("port", self.pname, "/dev/ttyACM0")
@@ -1491,3 +1510,9 @@ class PrinterDlg(wx.Frame):
 			self.fwdlg.Destroy()
 		except:
 			pass
+		
+		if self.pWebcam is not None:
+			try:
+				self.pWebcam.kill()
+			except:
+				pass
