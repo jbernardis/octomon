@@ -713,8 +713,10 @@ class PrinterDlg(wx.Frame):
 		
 		if self.pWebcam is not None:
 			self.pWebcam.kill()
-			
-		self.pWebcam = subprocess.Popen(cmdList, stderr=subprocess.DEVNULL)
+		si = subprocess.STARTUPINFO()
+		si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+		si.wShowWindow = subprocess.SW_HIDE
+		self.pWebcam = subprocess.Popen(cmdList, stderr=subprocess.DEVNULL, startupinfo=si)
 		
 	def MenuConnect(self, evt):
 		dftPort = self.settings.getSetting("port", self.pname, "/dev/ttyACM0")
