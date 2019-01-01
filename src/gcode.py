@@ -1,7 +1,8 @@
-import re
 import math
-# from tools import formatElapsed
+import re
 
+
+# from tools import formatElapsed
 gcRegex = re.compile("[-]?\d+[.]?\d*")
 
 MOVE_MOVE = 'm'
@@ -25,7 +26,6 @@ class GCMove:
 		self.lastDx = 0.0
 		self.lastDy = 0.0
 		self.lastSpeed = 0.0
-		self.acceleration = 1500.0
 
 	def getMoveType(self):
 		return self.mtype
@@ -33,7 +33,7 @@ class GCMove:
 	def getOffset(self):
 		return self.offset
 	
-	def calcMoveTime(self, lx, ly, lz, le, lf):
+	def calcMoveTime(self, lx, ly, lz, le, lf, acceleration):
 		speed = self.f / 60.0
 		mvTime = 0.0
 		
@@ -56,7 +56,7 @@ class GCMove:
 		if speed == self.lastSpeed:
 			mvTime = dist / speed if speed != 0 else 0
 		else:
-			d = 2 * abs(((speed + self.lastSpeed) * (speed - self.lastSpeed) * 0.5) / self.acceleration)
+			d = 2 * abs(((speed + self.lastSpeed) * (speed - self.lastSpeed) * 0.5) / acceleration)
 			if d <= dist and self.lastSpeed + speed != 0 and speed != 0:
 				mvTime = 2 * d / (self.lastSpeed + speed)
 				mvTime += (dist - d) / speed
@@ -87,6 +87,7 @@ class GCLayer:
 		self.moveMoves = 0
 		self.extrudeMoves = 0
 		self.layerTime = 0.0
+		self.filament = [0.0, 0.0, 0.0, 0.0]
 
 	def getMoves(self):
 		return self.moves
@@ -105,6 +106,12 @@ class GCLayer:
 			self.moveMoves += 1
 		elif mt == MOVE_EXTRUDE:
 			self.extrudeMoves += 1
+			
+	def addFilament(self, f, t):
+		self.filament[t] += f
+		
+	def getFilament(self):
+		return self.filament
 
 	def getHeight(self):
 		return self.height
@@ -122,13 +129,17 @@ class GCLayer:
 		return self.layerTime
 
 class GCode:
-	def __init__(self, gc):
+	def __init__(self, gc, acceleration):
 		self.gcode = gc.split("\n")
+		self.acceleration = acceleration
 
 		self.relativeExtrude = False
 		self.relativeMove = False
 		self.hasMovement = False
 		self.hasFilament = False
+		
+		self.filament = [0.0, 0.0, 0.0, 0.0]
+		self.tool = 0
 
 		self.layer = GCLayer(0.0)
 		self.layers = []
@@ -150,6 +161,7 @@ class GCode:
 			ln += 1
 			self.parseGLine(gl, offset)
 			moveType = None
+			dFilament = 0.0
 			if self.hasMovement:
 				if self.paramZ != self.lastZ:
 					self.layer = GCLayer(self.paramZ)
@@ -159,15 +171,20 @@ class GCode:
 					moveType = MOVE_MOVE
 				else:
 					moveType = MOVE_PRINT
-			elif self.hasFilament:
+					dFilament = self.paramE - self.lastE
+					
+			elif self.hasFilament and not self.resetFilament:
 				if self.paramE > self.lastE:
 					moveType = MOVE_EXTRUDE
 				else:
 					moveType = MOVE_RETRACT
-					
+				dFilament = self.paramE - self.lastE
+
+			self.filament[self.tool] += dFilament
+			self.layer.addFilament(dFilament, self.tool)					
 			if moveType:
 				mv = GCMove(self.paramX, self.paramY, self.paramZ, self.paramE, self.paramF, moveType, offset)
-				t = mv.calcMoveTime(self.lastX, self.lastY, self.lastZ, self.lastE, self.lastF)
+				t = mv.calcMoveTime(self.lastX, self.lastY, self.lastZ, self.lastE, self.lastF, acceleration)
 				self.layer.addMove(mv)
 				self.totalTime += t
 
@@ -178,12 +195,27 @@ class GCode:
 			self.lastF = self.paramF
 
 		self.compress()
+# 		print ("total filament used: {:s}".format(str(self.filament)))
+# 		for l in self.layers:
+# 			print ("  Filament used: {:s}".format(str(l.getFilament())))
 # 		print ("total print time: {:s}".format(formatElapsed(self.totalTime)))
 # 		for l in self.layers:
 # 			print ("  Layer Height {:f} print time {:s}".format(l.getHeight(), formatElapsed(l.getLayerTime())))
-		
+
+	def getFilament(self):
+		return self.filament
+			
 	def getPrintTime(self):
 		return self.totalTime
+	
+	def getLayersBetweenOffsets(self, so, eo):
+		res = []
+		for l in self.layers:
+			o = l.getOffsets()
+			if so < o[0] and eo > o[1]:
+				res.append(l)
+
+		return res
 
 	def getLayer(self, lx):
 		if lx < 0 or lx >= len(self.layers):
@@ -227,6 +259,7 @@ class GCode:
 	def parseGLine(self, gl, offset):
 		self.hasMovement = False
 		self.hasFilament = False
+		self.resetFilament = False
 		if ";" in gl:
 			gl = gl.split(";")[0]
 		if gl.strip() == "":
@@ -255,8 +288,12 @@ class GCode:
 			self.paramX = self._get_float(p[1], "X", self.lastX)
 			self.paramY = self._get_float(p[1], "Y", self.lastY)
 			self.paramZ = self._get_float(p[1], "Z", self.lastZ)
-			self.paramE = self._get_float(p[1], "E", self.lastE)
 			self.paramF = self._get_float(p[1], "F", self.lastF)
+			if self.hasFilament:
+				self.paramE = self._get_float(p[1], "E", self.lastE)
+			else:
+				self.paramE = 0.0
+			self.resetFilament = True
 
 		elif cmd == "G28":
 			self.hasMovement = True

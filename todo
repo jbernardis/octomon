@@ -1,13 +1,15 @@
 octoprint updates
 plugin updates
 
+interaction with plugins
+	time lapse???
+
 g code analysis
 	- per layer:
-		time until
-		filament used
+		filament volume calculation - will need filament diameter
 
 need a working marlin for following:
-	file upload - allow directory creation/travsersal
+	file upload - allow directory creation/traversal
 	allow upload to sd - also allow delete and select
 	the printer status report tells us if the sd is ready - should use that to enable/disable
 

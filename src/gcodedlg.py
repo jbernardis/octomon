@@ -26,10 +26,13 @@ class GCodeDlg(wx.Frame):
 		self.settings = settings
 		self.images = images
 		self.exitDlg = cbexit
+		self.nExtr = self.parent.nExtr
 		if self.gcode:
 			self.sTotalTime = " / " + formatElapsed(self.gcode.getPrintTime())
+			self.filament = self.gcode.getFilament()
 		else:
 			self.sTotalTime = ""
+			self.filament = 0.0
 
 		self.printPosition = 0
 		self.followPrint = True
@@ -39,8 +42,12 @@ class GCodeDlg(wx.Frame):
 		lbFont = wx.Font(10, wx.FONTFAMILY_SWISS, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_BOLD)
 
 		self.gcf = GcFrame(self, self.pname, self.gcode, self.settings)
-		self.stLayerInfo = wx.StaticText(self, wx.ID_ANY, "")
-		self.stLayerInfo.SetFont(lbFont)
+		self.stHeight = wx.StaticText(self, wx.ID_ANY, "")
+		self.stHeight.SetFont(lbFont)
+		self.stTime = wx.StaticText(self, wx.ID_ANY, "")
+		self.stTime.SetFont(lbFont)
+		self.stFilament = wx.StaticText(self, wx.ID_ANY, "")
+		self.stFilament.SetFont(lbFont)
 		self.slLayer = wx.Slider(self, wx.ID_ANY, 1, 1, 10, style=wx.SL_VERTICAL+wx.SL_LABELS+wx.SL_INVERSE)
 		self.Bind(wx.EVT_SLIDER, self.onSlLayer, self.slLayer)
 		self.bUp =  wx.BitmapButton(self, wx.ID_ANY, self.images.pngUp, size=BTNDIM, style=wx.NO_BORDER)
@@ -77,7 +84,11 @@ class GCodeDlg(wx.Frame):
 		szgcf = wx.BoxSizer(wx.VERTICAL)
 		szgcf.Add(self.gcf)
 		szgcf.AddSpacer(5)
-		szgcf.Add(self.stLayerInfo, 0, wx.ALIGN_CENTER)
+		szgcf.Add(self.stHeight, 0, wx.ALIGN_CENTER)
+		szgcf.AddSpacer(5)
+		szgcf.Add(self.stTime, 0, wx.ALIGN_CENTER)
+		szgcf.AddSpacer(5)
+		szgcf.Add(self.stFilament, 0, wx.ALIGN_CENTER)
 
 		szgc = wx.BoxSizer(wx.HORIZONTAL)
 		szgc.AddSpacer(15)
@@ -132,8 +143,10 @@ class GCodeDlg(wx.Frame):
 		self.gcode = gcode
 		if self.gcode:
 			self.sTotalTime = " / " + formatElapsed(self.gcode.getPrintTime())
+			self.filament = self.gcode.getFilament()
 		else:
 			self.sTotalTime = ""
+			self.filament = 0.0
 
 		self.setSliderRange()
 
@@ -168,10 +181,40 @@ class GCodeDlg(wx.Frame):
 	def showLayerInfo(self):
 		l = self.gcf.getCurrentLayer()
 		if l is None:
-			lbl = ""
+			lblHt = ""
+			lblTime = ""
+			lblFilament = ""
 		else:
-			lbl = "Height: {:.2f}   Print time: {:s}{:s}".format(l.getHeight(), formatElapsed(l.getLayerTime()), self.sTotalTime)
-		self.stLayerInfo.SetLabel(lbl)
+			lblHt, lblTime, lblFilament = self.formatLayerInfo(l)
+			
+			
+		self.stHeight.SetLabel(lblHt)
+		self.stTime.SetLabel(lblTime)
+		self.stFilament.SetLabel(lblFilament)
+		
+	def formatLayerInfo(self, l):
+		sHt = "Height: {:.2f}".format(l.getHeight())
+		
+		sTm = "  Print time: {:s}{:s}".format(formatElapsed(l.getLayerTime()), self.sTotalTime)
+		o = l.getOffsets()
+		if self.printPosition < o[0]:
+			lyrs = self.gcode.getLayersBetweenOffsets(self.printPosition, o[0])
+			untilTime = 0.0
+			for ly in lyrs:
+				untilTime += ly.getLayerTime()
+			sTm += " ({:s} until)".format(formatElapsed(untilTime))
+
+		sFi = "  Filament: "
+		lf = l.getFilament()
+		for i in range(self.nExtr):
+			if i > 0:
+				sFi += " / "
+				
+			if self.nExtr > 1:
+				sFi += "{:d}: ".format(i)
+			sFi += "{:.2f}/{:.2f}".format(lf[i], self.filament[i])
+			
+		return sHt, sTm, sFi
 
 	def onSlLayer(self, evt):
 		self.followPrintOff()

@@ -97,6 +97,7 @@ class PrinterDlg(wx.Frame):
 							[["off", 0], ["PLA (60)", 60], ["ABS (110)", 110]])
 		self.toolPresets = self.settings.getSetting("toolPresets", pname,
 							[["off", 0], ["PLA (205)", 205], ["ABS (225)", 225]])
+		self.acceleration = self.settings.getSetting("acceleration", pname, 1500)
 
 		self.printerState = "unknown"
 		self.lastReportedPrinterState = "unknown"
@@ -653,7 +654,7 @@ class PrinterDlg(wx.Frame):
 
 	def MenuViewGCode(self, evt):
 		if self.selectedFilePath is None:
-			self.GCode = GCode("")
+			self.GCode = GCode("", self.acceleration)
 		else:
 			try:
 				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath)
@@ -665,7 +666,7 @@ class PrinterDlg(wx.Frame):
 				return
 
 			if rc < 400:
-				self.GCode = GCode(gc)
+				self.GCode = GCode(gc, self.acceleration)
 			else:
 				dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.  Error = %d" % rc,
 						"Retrieve Error", wx.OK | wx.ICON_ERROR)
@@ -1249,7 +1250,7 @@ class PrinterDlg(wx.Frame):
 
 		if downloadGCode:
 			if rc < 400:
-				self.GCode = GCode(gc)
+				self.GCode = GCode(gc, self.acceleration)
 				self.gcdlg.reloadGCode(self.GCode, self.printFileName)
 			else:
 				self.logMessage("Unable to download G Code File")
