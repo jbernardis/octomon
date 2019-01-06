@@ -187,7 +187,6 @@ class GCodeDlg(wx.Frame):
 		else:
 			lblHt, lblTime, lblFilament = self.formatLayerInfo(l)
 			
-			
 		self.stHeight.SetLabel(lblHt)
 		self.stTime.SetLabel(lblTime)
 		self.stFilament.SetLabel(lblFilament)
@@ -211,8 +210,10 @@ class GCodeDlg(wx.Frame):
 				sFi += " / "
 				
 			if self.nExtr > 1:
+				if i > 0:
+					sFi += " - "
 				sFi += "{:d}: ".format(i)
-			sFi += "{:.2f}/{:.2f}".format(lf[i], self.filament[i])
+			sFi += "{:.2f}m ({:.2f}cm3) / {:.2f}m".format(lf[i][0], lf[i][1], self.filament[i][0])
 			
 		return sHt, sTm, sFi
 

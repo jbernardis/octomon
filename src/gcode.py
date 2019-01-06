@@ -10,6 +10,9 @@ MOVE_PRINT = 'p'
 MOVE_EXTRUDE = 'e'
 MOVE_RETRACT = 'r'
 
+def calcFilamentVolume(flen, fdiam):
+	csArea = ((fdiam/2.0)**2)*math.pi
+	return csArea * flen
 
 class GCMove:
 	def __init__(self, x, y, z, e, f, mtype, offset):
@@ -77,9 +80,11 @@ class GCMove:
 		return self.moveTime
 
 class GCLayer:
-	def __init__(self, ht):
+	def __init__(self, ht, nExtr, fDiam):
 		# print ("new layer at height {:f}".format(ht))
 		self.height = ht;
+		self.nExtr = nExtr
+		self.filamentDiameter = fDiam
 		self.moves = []
 		self.minOffset = None
 		self.maxOffset = None
@@ -87,7 +92,7 @@ class GCLayer:
 		self.moveMoves = 0
 		self.extrudeMoves = 0
 		self.layerTime = 0.0
-		self.filament = [0.0, 0.0, 0.0, 0.0]
+		self.filament = [0.0] * nExtr
 
 	def getMoves(self):
 		return self.moves
@@ -111,8 +116,11 @@ class GCLayer:
 		self.filament[t] += f
 		
 	def getFilament(self):
-		return self.filament
+		return [[self.filament[x], self.filamentVolume[x]] for x in range(self.nExtr)]
 
+	def calcLayerVolume(self):
+		self.filamentVolume = [calcFilamentVolume(self.filament[x], self.filamentDiameter) for x in range(self.nExtr)]
+		
 	def getHeight(self):
 		return self.height
 
@@ -129,19 +137,21 @@ class GCLayer:
 		return self.layerTime
 
 class GCode:
-	def __init__(self, gc, acceleration):
+	def __init__(self, gc, acceleration, fDiameter, nExtr):
 		self.gcode = gc.split("\n")
 		self.acceleration = acceleration
+		self.filamentDiameter = fDiameter
+		self.nExtr = nExtr
 
 		self.relativeExtrude = False
 		self.relativeMove = False
 		self.hasMovement = False
 		self.hasFilament = False
 		
-		self.filament = [0.0, 0.0, 0.0, 0.0]
+		self.filament = [0.0] * self.nExtr
 		self.tool = 0
 
-		self.layer = GCLayer(0.0)
+		self.layer = GCLayer(0.0, self.nExtr, self.filamentDiameter)
 		self.layers = []
 		self.layers.append(self.layer)
 
@@ -164,7 +174,7 @@ class GCode:
 			dFilament = 0.0
 			if self.hasMovement:
 				if self.paramZ != self.lastZ:
-					self.layer = GCLayer(self.paramZ)
+					self.layer = GCLayer(self.paramZ, self.nExtr, self.filamentDiameter)
 					self.layers.append(self.layer)
 
 				if self.paramE == self.lastE:
@@ -195,6 +205,11 @@ class GCode:
 			self.lastF = self.paramF
 
 		self.compress()
+		
+		self.filamentVolume = [calcFilamentVolume(self.filament[x], self.filamentDiameter) for x in range(self.nExtr)]
+		for l in self.layers:
+			l.calcLayerVolume()
+			
 # 		print ("total filament used: {:s}".format(str(self.filament)))
 # 		for l in self.layers:
 # 			print ("  Filament used: {:s}".format(str(l.getFilament())))
@@ -203,7 +218,7 @@ class GCode:
 # 			print ("  Layer Height {:f} print time {:s}".format(l.getHeight(), formatElapsed(l.getLayerTime())))
 
 	def getFilament(self):
-		return self.filament
+		return [[self.filament[x], self.filamentVolume[x]] for x in range(self.nExtr)]
 			
 	def getPrintTime(self):
 		return self.totalTime
@@ -317,6 +332,14 @@ class GCode:
 
 		elif cmd == "M83":
 			self.relativeExtrude = True
+			
+		elif cmd.startswith("T"):
+			try:
+				self.tool = int(cmd[1:])
+				if self.tool > self.nExtr or self.tool < 0:
+					self.tool = 0
+			except:
+				self.tool = 0
 
 		else:
 			pass
