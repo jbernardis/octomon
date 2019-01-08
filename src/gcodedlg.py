@@ -32,7 +32,7 @@ class GCodeDlg(wx.Frame):
 			self.filament = self.gcode.getFilament()
 		else:
 			self.sTotalTime = ""
-			self.filament = 0.0
+			self.filament = [[0.0, 0.0]]
 
 		self.printPosition = 0
 		self.followPrint = True
@@ -213,7 +213,7 @@ class GCodeDlg(wx.Frame):
 				if i > 0:
 					sFi += " - "
 				sFi += "{:d}: ".format(i)
-			sFi += "{:.2f}m ({:.2f}cm3) / {:.2f}m".format(lf[i][0], lf[i][1], self.filament[i][0])
+			sFi += "{:.2f}mm ({:.2f}cm3) / {:.2f}mm".format(lf[i][0], lf[i][1], self.filament[i][0])
 			
 		return sHt, sTm, sFi
 

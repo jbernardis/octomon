@@ -4,10 +4,6 @@ plugin updates
 interaction with plugins
 	time lapse???
 
-g code analysis
-	- per layer:
-		filament volume calculation - will need filament diameter
-		
 determine how to handle if tool numbering starts at 1 instead of 0
 
 need a working marlin for following:

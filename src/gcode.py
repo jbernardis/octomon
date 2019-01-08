@@ -116,7 +116,7 @@ class GCLayer:
 		self.filament[t] += f
 		
 	def getFilament(self):
-		return [[self.filament[x], self.filamentVolume[x]] for x in range(self.nExtr)]
+		return [[self.filament[x], self.filamentVolume[x]/1000.0] for x in range(self.nExtr)]
 
 	def calcLayerVolume(self):
 		self.filamentVolume = [calcFilamentVolume(self.filament[x], self.filamentDiameter) for x in range(self.nExtr)]
@@ -218,7 +218,7 @@ class GCode:
 # 			print ("  Layer Height {:f} print time {:s}".format(l.getHeight(), formatElapsed(l.getLayerTime())))
 
 	def getFilament(self):
-		return [[self.filament[x], self.filamentVolume[x]] for x in range(self.nExtr)]
+		return [[self.filament[x], self.filamentVolume[x]/1000.0] for x in range(self.nExtr)]
 			
 	def getPrintTime(self):
 		return self.totalTime

@@ -76,15 +76,18 @@ class FileDlg(wx.Frame):
 		self.bSelect.SetToolTip("Select file for printing")
 		self.Bind(wx.EVT_BUTTON, self.onBSelect, self.bSelect)
 		self.bSelect.SetDefault()
+		self.bSelect.Enable(False)
 
 		self.cbDelete = wx.CheckBox(self, wx.ID_ANY, "Delete")
 		self.cbDelete.SetToolTip("Enable Delete button")
 		self.Bind(wx.EVT_CHECKBOX, self.onCbDelete, self.cbDelete)
 		self.cbDelete.SetValue(False)
+		self.cbDelete.Enable(False)
 
 		self.bDelete = wx.BitmapButton(self, wx.ID_ANY, self.images.pngDelete, size=(48, 48))
 		self.bDelete.SetToolTip("Delete file")
 		self.Bind(wx.EVT_BUTTON, self.onBDelete, self.bDelete)
+		self.bDelete.Enable(False)
 
 		self.bDownload = wx.BitmapButton(self, wx.ID_ANY, self.images.pngDownload, size=(48, 48))
 		self.bDownload.SetToolTip("Download file")
