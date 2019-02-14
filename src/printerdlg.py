@@ -24,6 +24,7 @@ from fwsettings import FwSettings, FWC
 from settings import XCOUNT
 from connectdlg import ConnectDlg
 from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
+from octolapsedlg import OctolapseDlg
 
 (FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
 (TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
@@ -39,6 +40,7 @@ stStyle = wx.ST_NO_AUTORESIZE + wx.ALIGN_RIGHT
 BTNDIM = (48, 48) if os.name == 'posix' else (32, 32)
 MENU_FILE_LIST = 101
 MENU_FILE_UPLOAD = 102
+MENU_FILE_UPDATE = 103
 MENU_VIEW_TEMPERATURES = 201
 MENU_VIEW_GCODE = 202
 MENU_VIEW_TERMINAL = 203
@@ -46,6 +48,7 @@ MENU_VIEW_FIRMWARE = 204
 MENU_VIEW_WEBCAM = 205
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
+MENU_OCTOLAPSE = 401
 
 MAX_READ_TIMEOUTS = 15
 
@@ -162,6 +165,7 @@ class PrinterDlg(wx.Frame):
 		menu1 = wx.Menu()
 		menu1.Append(MENU_FILE_LIST, "&List", "list available files on printer")
 		menu1.Append(MENU_FILE_UPLOAD, "&Upload", "upload a GCode file to printer")
+		menu1.Append(MENU_FILE_UPDATE, "&Check for Updates", "check for octoprint/plugin updates")
 		menuBar.Append(menu1, "&File")
 
 		menu2 = wx.Menu()
@@ -176,10 +180,15 @@ class PrinterDlg(wx.Frame):
 		menu3.Append(MENU_CONNECT, "&Connect", "Force a printer connection")
 		menu3.Append(MENU_DISCONNECT, "&Disconnect", "Force a printer disconnection")
 		menuBar.Append(menu3, "&Connection")
+		
+		menu4 = wx.Menu()
+		menu4.Append(MENU_OCTOLAPSE, "&Configure", "Configure Octolapse")
+		menuBar.Append(menu4, "&Octolapse")
 
 		self.SetMenuBar(menuBar)
 		self.Bind(wx.EVT_MENU, self.MenuFileList, id=MENU_FILE_LIST)
 		self.Bind(wx.EVT_MENU, self.MenuFileUpload, id=MENU_FILE_UPLOAD)
+		self.Bind(wx.EVT_MENU, self.MenuFileUpdate, id=MENU_FILE_UPDATE)
 		self.Bind(wx.EVT_MENU, self.MenuViewTemps, id=MENU_VIEW_TEMPERATURES)
 		self.Bind(wx.EVT_MENU, self.MenuViewGCode, id=MENU_VIEW_GCODE)
 		self.Bind(wx.EVT_MENU, self.MenuViewTerminal, id=MENU_VIEW_TERMINAL)
@@ -187,6 +196,7 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuViewWebcam, id=MENU_VIEW_WEBCAM)
 		self.Bind(wx.EVT_MENU, self.MenuConnect, id=MENU_CONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
+		self.Bind(wx.EVT_MENU, self.MenuOctolapse, id=MENU_OCTOLAPSE)
 
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.AddSpacer(10)
@@ -625,7 +635,7 @@ class PrinterDlg(wx.Frame):
 		if rc == wx.ID_OK:
 			gcode = self.loadGCode(path)
 			try:
-				rc = self.server.gfile.uploadString("".join(gcode), fn)[0]
+				rc = self.server.gfile.uploadString("".join(gcode), fn, to=5)[0]
 			except:
 				dlg = wx.MessageDialog(self, "Unable to upload G Code file to printer",
 									   "Upload Error", wx.OK | wx.ICON_ERROR)
@@ -643,6 +653,44 @@ class PrinterDlg(wx.Frame):
 									   "Upload Error", wx.OK | wx.ICON_ERROR)
 				dlg.ShowModal()
 				dlg.Destroy()
+				
+	def MenuFileUpdate(self, evt):
+		pi = self.server.getPlugin("softwareupdate")
+		rc, rv = pi.get("check")
+		if rc < 400:
+			piList = rv["information"]
+			updateMessage = []
+			octoMessage = ""
+			for p in sorted(piList):
+				if piList[p]["updateAvailable"]:
+					#pprint.pprint(piList[p])
+					if p == "octoprint":						
+						octoMessage = "%s  %s  =>  %s" % (piList[p]["displayName"], piList[p]["information"]["local"]["value"], piList[p]["information"]["remote"]["value"])
+					else:
+						updateMessage.append("%s  %s  =>  %s" % (piList[p]["displayName"], piList[p]["information"]["local"]["value"], piList[p]["information"]["remote"]["value"]))
+						
+			if len(updateMessage) == 0 and octoMessage == "":
+				dlg = wx.MessageDialog(self, "Octoprint is up to date", "No Updates Available",
+					wx.OK | wx.ICON_INFORMATION)
+				dlg.ShowModal()
+				dlg.Destroy()
+			else:
+				ustr = ""
+				if octoMessage != "":
+					ustr = "\n" + octoMessage + "\n\n\n"
+					
+				ustr += "\n".join(updateMessage)
+				dlg = wx.MessageDialog(self, ustr, "Updates Available",
+					wx.OK | wx.ICON_INFORMATION)
+				dlg.ShowModal()
+				dlg.Destroy()
+				
+		else:
+			print()
+			dlg = wx.MessageDialog(self, "Unable to retrieve plugin information.  rc = %d" % rc,
+				"Retrieve Updates Error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
 
 	def MenuViewTemps(self, evt):
 		if self.tempGraph is None:
@@ -658,7 +706,7 @@ class PrinterDlg(wx.Frame):
 			self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
 		else:
 			try:
-				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath)
+				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=5)
 			except:
 				dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.",
 						"Retrieve Error", wx.OK | wx.ICON_ERROR)
@@ -766,6 +814,92 @@ class PrinterDlg(wx.Frame):
 		
 	def MenuDisconnect(self, evt):
 		self.server.disconnect()
+		
+	def MenuOctolapse(self, evt):
+		pi = self.server.getPlugin("octolapse")
+		rc, rv = pi.post("loadSettings")
+		if rv is None:
+			dlg = wx.MessageDialog(self, "Error querying plugin: octolapse",
+								   "Plugin Error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return 
+		
+		dlg = OctolapseDlg(self, self.pname, pi, rv)	
+		rc = dlg.ShowModal()
+		if rc != wx.ID_OK:
+			dlg.Destroy()
+			return 
+		
+		failedProfiles = []
+		successfulProfiles = []
+	
+		hasProfileChanged = { "Printer": dlg.hasPrinterProfileChanged,
+						"Rendering": dlg.hasRenderingProfileChanged,
+						"Snapshot": dlg.hasSnapshotProfileChanged,
+						"Stabilization": dlg.hasStabilizationProfileChanged }
+		
+		for pf in sorted(hasProfileChanged.keys()):
+			p = hasProfileChanged[pf]()
+			if p is not None:
+				rc, rv = pi.post("setCurrentProfile", {"profileType": pf, "guid": p, "client_id": ""})
+				if rv is None or not rv["success"]:
+					failedProfiles.append(pf)
+				else:
+					successfulProfiles.append(pf)
+
+		hasShowToggled = {
+			"show_extruder_state_changes": dlg.hasShowExtruderStateChanged,
+			"show_position_changes": dlg.hasShowPositionChanged,
+			"show_position_state_changes": dlg.hasShowPositionStateChanged,
+			"show_trigger_state_changes": dlg.hasShowTriggerStateChanged}
+		failedToggles = []
+		successfulToggles = []					
+		for tg in sorted(hasShowToggled.keys()):
+			p = hasShowToggled[tg]()
+			if p is not None:
+				rc, rv = pi.post("toggleInfoPanel", {"panel_type": tg})
+				if rv is None or not rv["success"]:
+					failedToggles.append("{} ({})".format(tg, p))
+				else:
+					successfulToggles.append("{} ({})".format(tg, p))
+			
+		p = dlg.hasEnabledStatusChanged()
+		enableResult = None
+		if p is not None:
+			rc, rv = pi.post("setEnabled", {"is_octolapse_enabled": p})
+			if rv is None or not rv["success"]:
+				# failed
+				if p:
+					enableResult = "Unable to ENABLE OctoLapse."
+				else:
+					enableResult = "Unable to DISABLE OctoLapse."
+			else:
+				# succeeded
+				if p:
+					enableResult = "OctoLapse successfully ENABLED."
+				else:
+					enableResult = "OctoLapse successfully DISABLED."
+
+		message = []			
+		if len(failedProfiles) > 0:
+			message.append("Failed profile Updates: " + ",".join(failedProfiles))
+		if len(successfulProfiles) > 0:
+			message.append("Successful profile Updates: " + ",".join(successfulProfiles))
+		if len(failedToggles) > 0:
+			message.append("Failed toggles:\n  " + "\n  ".join(failedToggles))
+		if len(successfulToggles) > 0:
+			message.append("Successful toggles:\n  " + "\n  ".join(successfulToggles))
+		if enableResult is not None:
+			message.append(enableResult)
+			
+		dlg.Destroy()
+		if len(message) > 0:
+			dlg = wx.MessageDialog(self, "\n".join(message),
+								   "Octolapse Configuration Result", wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+
 
 	def nextData(self):
 		return self.currentTemps
@@ -825,7 +959,7 @@ class PrinterDlg(wx.Frame):
 
 		elif cmd["action"] == "download" and "url" in cmd.keys():
 			try:
-				rc, gc = self.server.gfile.downloadFile(cmd["url"])
+				rc, gc = self.server.gfile.downloadFile(cmd["url"], to=5)
 			except:
 				dlg = wx.MessageDialog(self, "Unknown error during file download",
 									   "Download Error", wx.OK | wx.ICON_ERROR)
@@ -1238,7 +1372,7 @@ class PrinterDlg(wx.Frame):
 	def evtUpdateGCDlg(self, evt):		
 		downloadGCode = True
 		try:
-			rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath)
+			rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=5)
 		except:
 			self.logMessage("Unable to download G Code File")
 			self.GCode = None
@@ -1332,8 +1466,9 @@ class PrinterDlg(wx.Frame):
 			except:
 				self.lastReportedHeightInfo = None
 		else:
-			print ("plugin: %s" % json['plugin'])
-			pprint.pprint(json)
+			pass
+			#print ("plugin: %s" % json['plugin'])
+			#pprint.pprint(json)
 
 	def onImageClickXY(self, command):
 		try:

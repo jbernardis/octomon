@@ -17,7 +17,7 @@ class PrintHead:
 		self.url = "http://%s/api/printer/printhead" % self.printer.getIpAddr()
 		self.header = {"X-Api-Key": self.printer.getApiKey()}
 
-	def jog(self, vector, absolute=False, speed=None):
+	def jog(self, vector, absolute=False, speed=None, to=TIMEOUT):
 		x = 0
 		y = 0
 		z = 0
@@ -35,14 +35,14 @@ class PrintHead:
 			payload["speed"] = speed
 
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def home(self, xyz):
+	def home(self, xyz, to=TIMEOUT):
 		axes = []
 		if xyz[0]:
 			axes.append("x")
@@ -53,17 +53,17 @@ class PrintHead:
 
 		payload = {"command": "home", "axes": axes}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def feedrate(self, factor):
+	def feedrate(self, factor, to=TIMEOUT):
 		payload = {"command": "feedrate", "factor": factor}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
@@ -78,9 +78,9 @@ class Tool:
 		self.url = "http://%s/api/printer/tool" % self.printer.getIpAddr()
 		self.header = {"X-Api-Key": self.printer.getApiKey()}
 
-	def state(self):
+	def state(self, to=TIMEOUT):
 		try:
-			r = requests.get(self.url, data={}, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(self.url, data={}, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -91,14 +91,14 @@ class Tool:
 			j = None
 		return r.status_code, j
 
-	def target(self, targetVals):
+	def target(self, targetVals, to=TIMEOUT):
 		targets = {}
 		for t in targetVals.keys():
 			targets["tool%s" % t] = targetVals[t]
 
 		payload = {"command": "target", "targets": targets}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
@@ -106,14 +106,14 @@ class Tool:
 			return RC_CONNECT_TIMEOUT
 
 
-	def offset(self, offsetVals):
+	def offset(self, offsetVals, to=TIMEOUT):
 		offsets = {}
 		for i in range(len(offsetVals)):
 			offsets["tool%d" % i] = offsetVals[i]
 
 		payload = {"command": "offset", "offsets": offsets}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
@@ -121,40 +121,40 @@ class Tool:
 			return RC_CONNECT_TIMEOUT
 
 
-	def select(self, toolx):
+	def select(self, toolx, to=TIMEOUT):
 		payload = {"command": "select", "tool": "tool%d" % toolx}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def selectByName(self, tooln):
+	def selectByName(self, tooln, to=TIMEOUT):
 		payload = {"command": "select", "tool": "%s" % tooln}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def extrude(self, length):
+	def extrude(self, length, to=TIMEOUT):
 		payload = {"command": "extrude", "amount": length}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def retract(self, length):
+	def retract(self, length, to=TIMEOUT):
 		payload = {"command": "extrude", "amount": -length}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
@@ -168,9 +168,9 @@ class Bed:
 		self.url = "http://%s/api/printer/bed" % self.printer.getIpAddr()
 		self.header = {"X-Api-Key": self.printer.getApiKey()}
 
-	def state(self):
+	def state(self, to=TIMEOUT):
 		try:
-			r = requests.get(self.url, data={}, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(self.url, data={}, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -182,20 +182,20 @@ class Bed:
 			rv = None
 		return r.status_code, rv
 
-	def target(self, targetVal):
+	def target(self, targetVal, to=TIMEOUT):
 		payload = {"command": "target", "target": targetVal}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def offset(self, offsetVal):
+	def offset(self, offsetVal, to=TIMEOUT):
 		payload = {"command": "offset", "offset": offsetVal}
 		try:
-			r = requests.post(self.url, headers=self.header, json=payload, timeout=TIMEOUT)
+			r = requests.post(self.url, headers=self.header, json=payload, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
@@ -209,9 +209,9 @@ class Job:
 		self.url = "http://%s/api/job" % self.printer.getIpAddr()
 		self.header = {"X-Api-Key": self.printer.getApiKey()}
 
-	def state(self):
+	def state(self, to=TIMEOUT):
 		try:
-			r = requests.get(self.url, data={}, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(self.url, data={}, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -222,67 +222,102 @@ class Job:
 			rv = None
 		return r.status_code, rv
 
-	def start(self):
+	def start(self, to=TIMEOUT):
 		payload = {"command": "start"}
 		try:
-			r = requests.post(self.url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def cancel(self):
+	def cancel(self, to=TIMEOUT):
 		payload = {"command": "cancel"}
 		try:
-			r = requests.post(self.url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def restart(self):
+	def restart(self, to=TIMEOUT):
 		payload = {"command": "restart"}
 		try:
-			r = requests.post(self.url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def pause(self):
+	def pause(self, to=TIMEOUT):
 		payload = {"command": "pause", "action": "pause"}
 		try:
-			r = requests.post(self.url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def resume(self):
+	def resume(self, to=TIMEOUT):
 		payload = {"command": "pause", "action": "resume"}
 		try:
-			r = requests.post(self.url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def preheat(self):
+	def preheat(self, to=TIMEOUT):
 		url = "http://%s/api/plugin/preheat" % self.printer.getIpAddr()
 		payload = {"command": "preheat"}
 		try:
-			r = requests.post(url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
+
+class Plugin:
+	def __init__(self, printer, pname):
+		self.printer = printer
+		self.name = pname
+		self.url = "http://%s/plugin/%s" % (self.printer.getIpAddr(), self.name)
+		self.header = {"X-Api-Key": self.printer.getApiKey()}
+
+	def get(self, command, to=TIMEOUT):
+		url = "%s/%s" % (self.url, command)
+		try:
+			r = requests.get(url, data={}, headers=self.header, timeout=to)
+		except requests.exceptions.ReadTimeout:
+			return RC_READ_TIMEOUT, None
+		except requests.exceptions.ConnectTimeout:
+			return RC_CONNECT_TIMEOUT, None
+		try:
+			rv = r.json()
+		except:
+			rv = None
+		return r.status_code, rv
+
+	def post(self, command, payload={}, to=TIMEOUT):
+		url = "%s/%s" % (self.url, command)
+		try:
+			r = requests.post(url, json=payload, headers=self.header, timeout=to)
+		except requests.exceptions.ReadTimeout:
+			return RC_READ_TIMEOUT, None
+		except requests.exceptions.ConnectTimeout:
+			return RC_CONNECT_TIMEOUT, None
+		try:
+			rv = r.json()
+		except:
+			rv = None
+		return r.status_code, rv
 
 class GFile:
 	def __init__(self, printer):
@@ -290,7 +325,7 @@ class GFile:
 		self.url = "http://%s/api/files" % self.printer.getIpAddr()
 		self.header = {"X-Api-Key": self.printer.getApiKey()}
 
-	def uploadFile(self, fn, n=None):
+	def uploadFile(self, fn, n=None, to=TIMEOUT):
 		if n is None:
 			bn = os.path.basename(fn)
 		else:
@@ -300,7 +335,7 @@ class GFile:
 
 		files = {'file': (bn, open(fn, 'rb'), 'application/octet-stream')}
 		try:
-			r = requests.post(self.url + location, files=files, headers=self.header, timeout=5)
+			r = requests.post(self.url + location, files=files, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -312,7 +347,7 @@ class GFile:
 			rv = None
 		return r.status_code, rv
 
-	def selectFile(self, origin, path, prt=False):
+	def selectFile(self, origin, path, prt=False, to=TIMEOUT):
 		location = "/%s" % origin
 		if path.startswith("/"):
 			location += path
@@ -320,21 +355,21 @@ class GFile:
 			location += "/" + path
 		payload = {"command": "select", "print": prt}
 		try:
-			r = requests.post(self.url + location, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(self.url + location, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def downloadFileByName(self, origin, path):
+	def downloadFileByName(self, origin, path, to=TIMEOUT):
 		location = "/%s" % origin
 		if path.startswith("/"):
 			location += path
 		else:
 			location += "/" + path
 		try:
-			r = requests.get(self.url + location, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(self.url + location, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, "Request for information Failed"
 		except requests.exceptions.ConnectTimeout:
@@ -349,9 +384,9 @@ class GFile:
 		except:
 			return 404, "URL not returned"
 
-		return self.downloadFile(url)
+		return self.downloadFile(url, to=to)
 
-	def deleteFile(self, origin, path):
+	def deleteFile(self, origin, path, to=TIMEOUT):
 		location = "/%s" % origin
 		if path.startswith("/"):
 			location += path
@@ -359,18 +394,18 @@ class GFile:
 			location += "/" + path
 
 		try:
-			r = requests.delete(self.url + location, headers=self.header, timeout=TIMEOUT)
+			r = requests.delete(self.url + location, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 
-	def uploadString(self, s, n):
+	def uploadString(self, s, n, to=TIMEOUT):
 		files = {'file': (n, io.StringIO(s), 'application/octet-stream')}
 		location = "/local"
 		try:
-			r = requests.post(self.url + location, files=files, headers=self.header, timeout=5)
+			r = requests.post(self.url + location, files=files, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -381,7 +416,7 @@ class GFile:
 			rv = None
 		return r.status_code, rv
 
-	def listFiles(self, local=True, sd=False, recursive=False):
+	def listFiles(self, local=True, sd=False, recursive=False, to=TIMEOUT):
 		location = ""
 		if local and not sd:
 			location = "/local"
@@ -392,7 +427,7 @@ class GFile:
 			location += "?recursive=true"
 
 		try:
-			req = requests.get(self.url + location, headers=self.header, timeout=TIMEOUT)
+			req = requests.get(self.url + location, headers=self.header, timeout=to)
 		except:
 			return None
 
@@ -421,8 +456,8 @@ class GFile:
 
 		return result
 
-	def downloadFile(self, url):
-		req = requests.get(url, headers=self.header, timeout=5)
+	def downloadFile(self, url, to=TIMEOUT):
+		req = requests.get(url, headers=self.header, timeout=to)
 		try:
 			rv = req.text
 		except:
@@ -441,8 +476,18 @@ class PrinterServer:
 		self.bed = Bed(self)
 		self.job = Job(self)
 		self.gfile = GFile(self)
+		self.plugins = {}
 		self.opClient = Client("http://%s" % self.ipAddr, self.apiKey)
 		self.opSocket = None
+		
+	def addPlugin(self, pname):
+		self.plugins[pname] = Plugin(self, pname)
+		
+	def getPlugin(self, pname):
+		if pname in self.plugins:
+			return self.plugins[pname]
+		
+		return None
 
 	def getIpAddr(self):
 		return self.ipAddr
@@ -534,12 +579,12 @@ class PrinterServer:
 		if callable(self.stateUpdate) and "state" in mbody.keys():
 			self.stateUpdate(mbody["state"])
 
-	def state(self, exclude=[]):
+	def state(self, exclude=[], to=TIMEOUT):
 		url = "http://%s/api/printer" % self.ipAddr
 		if len(exclude) > 0:
 			url += "?exclude=%s" % ",".join(exclude)
 		try:
-			r = requests.get(url, data={}, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(url, data={}, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -550,11 +595,11 @@ class PrinterServer:
 			rv = None
 		return r.status_code, rv
 
-	def command(self, cmd):
+	def command(self, cmd, to=TIMEOUT):
 		url = "http://%s/api/printer/command" % self.ipAddr
 		payload = {"command": cmd}
 		try:
-			r = requests.post(url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(url, json=payload, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT, None
 		except requests.exceptions.ConnectTimeout:
@@ -566,10 +611,10 @@ class PrinterServer:
 			rv = None
 		return r.status_code, rv
 	
-	def getConnectionInfo(self):
+	def getConnectionInfo(self, to=TIMEOUT):
 		url = "http://%s/api/connection" % self.ipAddr
 		try:
-			r = requests.get(url, data={}, headers=self.header, timeout=TIMEOUT)
+			r = requests.get(url, data={}, headers=self.header, timeout=to)
 		except requests.exceptions.ReadTimeout:
 			return None, None
 		except requests.exceptions.ConnectTimeout:
@@ -581,7 +626,7 @@ class PrinterServer:
 			rv = None
 		return r.status_code, rv
 
-	def connect(self, port="/dev/ttyACM0", baudrate=115200):
+	def connect(self, port="/dev/ttyACM0", baudrate=115200, to=TIMEOUT):
 		url = "http://%s/api/connection" % self.ipAddr
 		payload = {"command": "connect",
 				"port": port,
@@ -590,18 +635,18 @@ class PrinterServer:
 				"autoconnect": True
 				}
 		try:
-			r = requests.post(url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
 	
-	def disconnect(self):
+	def disconnect(self, to=TIMEOUT):
 		url = "http://%s/api/connection" % self.ipAddr
 		payload = {"command": "disconnect"}
 		try:
-			r = requests.post(url, json=payload, headers=self.header, timeout=TIMEOUT)
+			r = requests.post(url, json=payload, headers=self.header, timeout=to)
 			return r.status_code
 		except requests.exceptions.ReadTimeout:
 			return RC_READ_TIMEOUT

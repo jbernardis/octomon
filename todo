@@ -1,8 +1,5 @@
-octoprint updates
-plugin updates
-
 interaction with plugins
-	time lapse???
+	time lapse??? - done but need to debug
 
 determine how to handle if tool numbering starts at 1 instead of 0
 
