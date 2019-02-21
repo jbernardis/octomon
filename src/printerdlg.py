@@ -79,7 +79,8 @@ class PrinterDlg(wx.Frame):
 		self.images = images
 		self.pWebcam = None
 
-		self.flash = FwSettings()
+		self.hasZProbe = self.settings.getSetting("haszprobe", pname, False)
+		self.flash = FwSettings(self.hasZProbe)
 		self.collectingFw = False
 
 		self.fileDlg = None
@@ -744,7 +745,7 @@ class PrinterDlg(wx.Frame):
 	def startFwCollection(self, container, callback):
 		self.collectingFw = True
 		self.collCompleteCB = callback
-		FWC.start(container)
+		FWC.start(container, self.hasZProbe)
 		self.server.command("M503")
 
 	def haveAllSettings(self):
