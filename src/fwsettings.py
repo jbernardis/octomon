@@ -10,9 +10,10 @@ FwMsgMap = {"M92": ["X", "Y", "Z", "E"],
 			"M203": ["X", "Y", "Z", "E"],
 			"M204": ["P", "R", "T"],
 			"M205": ["S", "T", "B", "X", "Z", "E"],
-			"M301": ["P", "I", "D"]}
+			"M301": ["P", "I", "D"],
+			"M851": ["Z"]}
 
-ZProbeMap = {"M851": ["Z"]}
+ZProbeKeys = ["M851"]
 
 gcRegex = re.compile("[-]?\d+[.]?\d*")
 
@@ -23,7 +24,7 @@ class FwCollector:
 
 	def start(self, container, haszprobe):
 		self.container = container
-		self.haszprobe = haszprobe
+		self.hasZProbe = haszprobe
 		self.container.empty()
 
 	def checkFwCommand(self, msg):
@@ -35,9 +36,8 @@ class FwCollector:
 			return
 
 		if cmd in FwMsgMap.keys():
-			self.container.parseCmd(cmd, msg, FwMsgMap[cmd])
-		elif self.haszprobe and cmd in ZProbeMap.keys():
-			self.container.parseCmd(cmd, msg, ZProbeMap[cmd])
+			if self.hasZProbe or cmd not in ZProbeKeys:
+				self.container.parseCmd(cmd, msg, FwMsgMap[cmd])
 
 	def collectionComplete(self):
 		if self.container is None:
@@ -61,9 +61,7 @@ class FwSettings(object):
 	def empty(self):
 		self.hasValues = {}
 		for k in FwMsgMap.keys():
-			self.hasValues[k] = False
-		if self.hasZProbe:
-			for k in ZProbeMap.keys():
+			if self.hasZProbe or k not in ZProbeKeys:
 				self.hasValues[k] = False
 
 		self.values = {}

@@ -13,12 +13,12 @@ grpinfo = {'m92' : ['Steps per Unit - M92', 4, ['x', 'y', 'z', 'e'], ['X Steps',
 		'm203' : ['Max Feed Rates (mm/s) - M203', 4, ['x', 'y', 'z', 'e'], ['X Maximum Feed Rate', 'Y Maximum Feed Rate', 'Z Maximum Feed Rate', 'E Maximum Feed Rate']],
 		'm204' : ['Acceleration - M204', 3, ['p', 'r', 't'], ['Maximum Print Acceleration', 'Maximum Retraction Acceleration', 'Maximum Travel Acceleration']],
 		'm205' : ['Advanced - M205', 6, ['s', 't', 'b', 'x', 'z', 'e'], ['Minimum Feed Rate', 'Minimum Travel', 'Minimum Segment Time', 'Maximum XY Jerk', 'Maximum Z Jerk', 'Maximum E Jerk']],
-		'm301' : ['PID - M301', 3, ['p', 'i', 'd'], ['Proportional Value', 'Integral Value', 'Derivative Value']]}
+		'm301' : ['PID - M301', 3, ['p', 'i', 'd'], ['Proportional Value', 'Integral Value', 'Derivative Value']],
+		'm851': ['Z Probe Offset - M851', 1, ['z'], ['Z Offset from extruder']]}
 
-grporder = ['m92', 'm201', 'm203', 'm204', 'm205', 'm301']
+grporder = ['m92', 'm201', 'm203', 'm204', 'm205', 'm301', 'm851']
 
-zprobeinfo = {'m851': ['Z Probe Offset - M851', 1, ['z'], ['Z Offset from extruder']]}
-zprobeorder = ['m851']
+zprobekeys = ['m851']
 
 def getFirmwareProfile(fn, container):
 	cfg = configparser.ConfigParser()
@@ -31,24 +31,14 @@ def getFirmwareProfile(fn, container):
 		return False, "Firmware profile file %s does not have %s section." % (fn, section)
 
 	for g in grporder:
-		for i in grpinfo[g][2]:
-			k = "%s_%s" % (g, i)
-			if not cfg.has_option(section, k):
-				v = None
-			else:
-				v = str(cfg.get(section, k))
-
-			container.setValue(k, v)
-			
-	if container.hasZProbe:
-		for g in zprobeorder:
-			for i in zprobeinfo[g][2]:
+		if container.hasZProbe or g not in zprobekeys:
+			for i in grpinfo[g][2]:
 				k = "%s_%s" % (g, i)
 				if not cfg.has_option(section, k):
 					v = None
 				else:
 					v = str(cfg.get(section, k))
-
+	
 				container.setValue(k, v)
    	
 	return True, "Firmware profile file %s successfully read" % fn
@@ -60,19 +50,8 @@ def putFirmwareProfile(fn, container):
 	section = "Firmware"
 	cfg.add_section(section)
 	for g in grporder:
-		for i in grpinfo[g][2]:
-			k = "%s_%s" % (g, i)
-			v = container.getValue(k)
-			if v is not None:
-				cfg.set(section, k, str(v))
-			else:
-				try:
-					cfg.remove_option(section, k)
-				except:
-					pass
-	if container.hasZProbe:
-		for g in zprobeorder:
-			for i in zprobeinfo[g][2]:
+		if container.hasZProbe or g not in zprobekeys:
+			for i in grpinfo[g][2]:
 				k = "%s_%s" % (g, i)
 				v = container.getValue(k)
 				if v is not None:
@@ -140,10 +119,11 @@ class FirmwareDlg(wx.Frame):
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 
 		self.parent = parent
+		self.hasZProbe = self.parent.hasZProbe
 		self.server = server
-		self.eeprom = FwSettings(self.parent.hasZProbe)
+		self.eeprom = FwSettings(self.hasZProbe)
 		self.flash = flash
-		self.working = FwSettings(self.parent.hasZProbe)
+		self.working = FwSettings(self.hasZProbe)
 		self.printerName = pname
 		self.exitDlg = cbexit
 		self.settings = self.parent.settings
@@ -173,15 +153,12 @@ class FirmwareDlg(wx.Frame):
 
 		t = wx.StaticText(self, wx.ID_ANY, "  ", size=(20, -1))
 		self.sizer.Add(t, pos=(0, 8), flag=wx.ALIGN_CENTER)
-		grps = grporder
-		if self.parent.hasZProbe:
-			grps = grporder + zprobeorder
 
-		for g in grps:
-			try:
-				item = grpinfo[g]
-			except:
-				item = zprobeinfo[g]
+		for g in grporder:
+			if not self.hasZProbe and g in zprobekeys:
+				continue
+			
+			item = grpinfo[g]
 				
 			t = TextBox(self, item[0])
 			self.sizer.Add(t, pos=(row, 1), span=(item[1], 1), flag=wx.EXPAND)
@@ -303,12 +280,12 @@ class FirmwareDlg(wx.Frame):
 		self.sendGroupToFlash(gk)
 
 	def sendGroupToFlash(self, gk):
+		if not self.hasZProbe and gk in zprobekeys:
+			return
+		
 		cmd = gk.upper()
 		nterms = 0
-		try:
-			item = grpinfo[gk]
-		except:
-			item = zprobeinfo[gk]
+		item = grpinfo[gk]
 		for gi in item[2]:
 			ik = gk + '_' + gi
 
@@ -328,9 +305,6 @@ class FirmwareDlg(wx.Frame):
 	def onCopyAllToFlash(self, evt):
 		for g in grporder:
 			self.sendGroupToFlash(g)
-		if self.parent.hasZProbe:
-			for g in zprobeorder:
-				self.sendGroupToFlash(g)
 
 	def onCopyFlashToEEProm(self, evt):
 		self.server.command("M500")
