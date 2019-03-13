@@ -1102,6 +1102,7 @@ class PrinterDlg(wx.Frame):
 				dlg.Destroy()
 
 	def onBCancel(self, evt):
+		self.bPrint.SetBitmap(self.images.pngPrint)
 		try:
 			self.server.job.cancel()
 		except:
