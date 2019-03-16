@@ -28,6 +28,7 @@ class TerminalDlg(wx.Frame):
 		
 		self.suppressTempRpt = self.settings.getSetting("suppresstemprpt", self.pname, False)
 		self.suppressTempProbe = self.settings.getSetting("suppresstempprobe", self.pname, False)
+		self.suppressBusy = self.settings.getSetting("suppressbusy", self.pname, True)
 		self.forceUpper = self.settings.getSetting("forceupper", self.pname, True)
 		self.autoClear = self.settings.getSetting("autoclear", self.pname, True)
 
@@ -78,6 +79,11 @@ class TerminalDlg(wx.Frame):
 		szFilters.Add(self.cbSuppressTempProbe, 0, wx.TOP, 4)
 		self.cbSuppressTempProbe.SetValue(self.suppressTempProbe)
 		self.Bind(wx.EVT_CHECKBOX, self.onCbSuppressTempProbe, self.cbSuppressTempProbe)
+
+		self.cbSuppressBusy = wx.CheckBox(self, wx.ID_ANY, "Suppress busy messages")
+		szFilters.Add(self.cbSuppressBusy, 0, wx.TOP, 4)
+		self.cbSuppressBusy.SetValue(self.suppressBusy)
+		self.Bind(wx.EVT_CHECKBOX, self.onCbSuppressBusy, self.cbSuppressBusy)
 
 		szLogCtrl.Add(szFilters)
 		szLog.Add(szLogCtrl, 0, wx.ALL|wx.EXPAND, 5)
@@ -148,6 +154,8 @@ class TerminalDlg(wx.Frame):
 	def logLine(self, l):
 		if self.paused:
 			return
+		if self.suppressBusy and "busy: processing" in l:
+			return
 		if self.suppressTempRpt and l.startswith("Recv:  T:"):
 			return
 		if self.suppressTempProbe:
@@ -196,6 +204,10 @@ class TerminalDlg(wx.Frame):
 	def onCbSuppressTempProbe(self, evt):
 		self.suppressTempProbe = self.cbSuppressTempProbe.GetValue()
 		self.settings.setSetting("suppresstempprobe", str(self.suppressTempProbe), self.pname)
+		
+	def onCbSuppressBusy(self, evt):
+		self.suppressBusy = self.cbSuppressBusy.GetValue()
+		self.settings.setSetting("suppressbusy", str(self.suppressBusy), self.pname)
 
 	def onCbAutoClear(self, evt):
 		self.autoClear = self.cbAutoClear.GetValue()
