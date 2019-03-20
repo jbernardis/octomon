@@ -223,6 +223,9 @@ class GCode:
 	def getPrintTime(self):
 		return self.totalTime
 	
+	def getLayerTimes(self):
+		return [l.getLayerTime() for l in self.layers]
+	
 	def getLayersBetweenOffsets(self, so, eo):
 		res = []
 		for l in self.layers:

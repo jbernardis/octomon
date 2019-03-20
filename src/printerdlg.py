@@ -25,6 +25,7 @@ from settings import XCOUNT
 from connectdlg import ConnectDlg
 from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
 from octolapsedlg import OctolapseDlg
+from timesdlg import TimesDlg
 
 (FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
 (TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
@@ -44,11 +45,12 @@ MENU_FILE_UPDATE = 103
 MENU_VIEW_TEMPERATURES = 201
 MENU_VIEW_GCODE = 202
 MENU_VIEW_TERMINAL = 203
-MENU_VIEW_FIRMWARE = 204
-MENU_VIEW_WEBCAM = 205
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
-MENU_OCTOLAPSE = 401
+MENU_CAMERA_VIEW = 401
+MENU_CAMERA_OCTOLAPSE = 402
+MENU_TOOLS_TIMES = 501
+MENU_TOOLS_FIRMWARE = 504
 
 MAX_READ_TIMEOUTS = 15
 
@@ -78,6 +80,7 @@ class PrinterDlg(wx.Frame):
 		self.settings = settings
 		self.images = images
 		self.pWebcam = None
+		self.GCode = None
 
 		self.hasZProbe = self.settings.getSetting("haszprobe", pname, False)
 		self.flash = FwSettings(self.hasZProbe)
@@ -90,6 +93,7 @@ class PrinterDlg(wx.Frame):
 		self.fwdlg = None
 		self.fwc = None
 		self.msgTimer = 0
+		self.timesdlg = None
 		
 		self.toRead = 0
 
@@ -173,18 +177,22 @@ class PrinterDlg(wx.Frame):
 		menu2.Append(MENU_VIEW_TEMPERATURES, "&Temperatures", "Graphcal display of temperatures")
 		menu2.Append(MENU_VIEW_GCODE, "&G Code", "Visually track G Code as it prints")
 		menu2.Append(MENU_VIEW_TERMINAL, "Ter&minal", "View commands set to the printer and their responses")
-		menu2.Append(MENU_VIEW_WEBCAM, "&Webcam", "Open a webcam viewing window")
-		menu2.Append(MENU_VIEW_FIRMWARE, "&Firmware", "View printer firmware settings")
 		menuBar.Append(menu2, "&View")
 		
 		menu3 = wx.Menu()
 		menu3.Append(MENU_CONNECT, "&Connect", "Force a printer connection")
 		menu3.Append(MENU_DISCONNECT, "&Disconnect", "Force a printer disconnection")
-		menuBar.Append(menu3, "&Connection")
 		
 		menu4 = wx.Menu()
-		menu4.Append(MENU_OCTOLAPSE, "&Configure", "Configure Octolapse")
-		menuBar.Append(menu4, "&Octolapse")
+		menu4.Append(MENU_TOOLS_TIMES, "&Print Times", "Analyze print times")
+		menu4.Append(MENU_TOOLS_FIRMWARE, "&Firmware", "View/Edit printer firmware settings")
+		menu4.AppendSubMenu(menu3, "&Connection")
+		menuBar.Append(menu4, "&Tools")
+		
+		menu5 = wx.Menu()
+		menu5.Append(MENU_CAMERA_VIEW, "&View", "Open a camera viewing window")
+		menu5.Append(MENU_CAMERA_OCTOLAPSE, "&Octolapse", "Configure Octolapse")
+		menuBar.Append(menu5, "&Camera")
 
 		self.SetMenuBar(menuBar)
 		self.Bind(wx.EVT_MENU, self.MenuFileList, id=MENU_FILE_LIST)
@@ -193,11 +201,12 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuViewTemps, id=MENU_VIEW_TEMPERATURES)
 		self.Bind(wx.EVT_MENU, self.MenuViewGCode, id=MENU_VIEW_GCODE)
 		self.Bind(wx.EVT_MENU, self.MenuViewTerminal, id=MENU_VIEW_TERMINAL)
-		self.Bind(wx.EVT_MENU, self.MenuViewFirmware, id=MENU_VIEW_FIRMWARE)
-		self.Bind(wx.EVT_MENU, self.MenuViewWebcam, id=MENU_VIEW_WEBCAM)
 		self.Bind(wx.EVT_MENU, self.MenuConnect, id=MENU_CONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
-		self.Bind(wx.EVT_MENU, self.MenuOctolapse, id=MENU_OCTOLAPSE)
+		self.Bind(wx.EVT_MENU, self.MenuCameraView, id=MENU_CAMERA_VIEW)
+		self.Bind(wx.EVT_MENU, self.MenuCameraOctolapse, id=MENU_CAMERA_OCTOLAPSE)
+		self.Bind(wx.EVT_MENU, self.MenuToolsTimes, id=MENU_TOOLS_TIMES)
+		self.Bind(wx.EVT_MENU, self.MenuToolsFirmware, id=MENU_TOOLS_FIRMWARE)
 
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.AddSpacer(10)
@@ -713,6 +722,7 @@ class PrinterDlg(wx.Frame):
 						"Retrieve Error", wx.OK | wx.ICON_ERROR)
 				dlg.ShowModal()
 				dlg.Destroy()
+				self.GCode = None
 				return
 
 			if rc < 400:
@@ -722,6 +732,7 @@ class PrinterDlg(wx.Frame):
 						"Retrieve Error", wx.OK | wx.ICON_ERROR)
 				dlg.ShowModal()
 				dlg.Destroy()
+				self.GCode = None
 				return
 
 		self.gcdlg = GCodeDlg(self, self.server, self.GCode, self.selectedFilePath, self.pname, self.settings, self.images, self.exitGCDlg)
@@ -739,7 +750,7 @@ class PrinterDlg(wx.Frame):
 		self.termdlg.Destroy()
 		self.termdlg = None
 
-	def MenuViewFirmware(self, evt):
+	def MenuToolsFirmware(self, evt):
 		self.startFwCollection(self.flash, self.haveAllSettings)
 
 	def startFwCollection(self, container, callback):
@@ -756,11 +767,11 @@ class PrinterDlg(wx.Frame):
 		self.fwdlg.Destroy()
 		self.fwdlg = None
 				
-	def MenuViewWebcam(self, evt):
+	def MenuCameraView(self, evt):
 		player = self.settings.getSetting("videoPlayer", dftValue="ffplay")
 		options = self.settings.getSetting("videoPlayerOptions", self.pname, dftValue=["-vf", "hflip,vflip"])
 		uri = self.settings.getSetting("webcamUri", dftValue="webcam/?action=stream")
-		cmdList = [player] + options + ["-window_title", "%s webcam" % self.pname, "http://%s/%s" % (self.ipAddr, uri)]
+		cmdList = [player] + options + ["-window_title", "%s Camera" % self.pname, "http://%s/%s" % (self.ipAddr, uri)]
 		
 		if self.pWebcam is not None:
 			self.pWebcam.kill()
@@ -820,10 +831,10 @@ class PrinterDlg(wx.Frame):
 	def MenuDisconnect(self, evt):
 		self.server.disconnect()
 		
-	def MenuOctolapse(self, evt):
+	def MenuCameraOctolapse(self, evt):
 		pi = self.server.getPlugin("octolapse")
 		rc, rv = pi.post("loadSettings")
-		if rv is None:
+		if rv is None or rc >= 400:
 			dlg = wx.MessageDialog(self, "Error querying plugin: octolapse",
 								   "Plugin Error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
@@ -905,6 +916,73 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
+	def MenuToolsTimes(self, evt):
+		self.refreshTimes()
+		
+	def refreshTimes(self):
+		if self.GCode is None:
+			dlg = wx.MessageDialog(self, "No GCode",
+				"No G Code to analyze", wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+		
+		tt = self.GCode.getPrintTime()
+		lt = self.GCode.getLayerTimes()
+
+		ept = self.estimatedPrintTime		
+		pt = self.printTime
+		ptl = self.printTimeLeft
+		
+		if ept is None or pt is None or ptl is None:
+			dlg = wx.MessageDialog(self, "No Times",
+				"Octoprint has provided no Time values", wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return
+		
+		li = self.layerInfo
+		msg = None
+		if li is None:
+			lx = 0
+			ln = len(lt)
+			msg = "Octoprint has provided no layer information.\nAssuming layer 0 of {}".format(ln)
+		else:
+			lil = li.split(" / ")
+			if len(lil) != 2:
+				lx = 0
+				ln = len(lt)
+				msg = "Unable to parse layer information provided by Octoprint ({})\nAssuming layer {} of {}".format(li, lx, ln)
+			else:
+				try:
+					lx = int(lil[0])
+				except ValueError:
+					msg = "Unable to parse layer number from information provided by Octoprint ({})\nUsing layer 0".format(lil[0])
+					lx = 0
+				try:
+					ln = int(lil[1])
+				except ValueError:
+					ln = len(lt)
+					msg = "Unable to parse layer count from information provided by Octoprint ({})\nUsing count {}".format(lil[1], ln)
+
+		if msg is not None:
+			dlg = wx.MessageDialog(self, "G Code Warning", msg, wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+			
+		pl = sum([lt[x] for x in range(len(lt)) if x < lx])
+		rl = sum([lt[x] for x in range(len(lt)) if x > lx])
+		
+		if self.timesdlg is None:
+			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg, self.refreshTimes)
+			
+		self.timesdlg.updateTimes(tt, ept, pt, pl, lt[lx], rl, ptl)
+		self.timesdlg.Show()
+		
+
+	def exitTimesDlg(self):
+		self.timesdlg.Destroy()
+		self.timesdlg = None
 
 	def nextData(self):
 		return self.currentTemps
@@ -1654,6 +1732,11 @@ class PrinterDlg(wx.Frame):
 
 		try:
 			self.fwdlg.Destroy()
+		except:
+			pass
+
+		try:
+			self.timesdlg.Destroy()
 		except:
 			pass
 		
