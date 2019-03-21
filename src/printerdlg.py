@@ -916,10 +916,16 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def MenuToolsTimes(self, evt):
+	def MenuToolsTimes(self, evt):		
+		if self.timesdlg is None:
+			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg, self.refreshTimes)
+
 		self.refreshTimes()
 		
 	def refreshTimes(self):
+		if self.timesdlg is None:
+			return 
+		
 		if self.GCode is None:
 			dlg = wx.MessageDialog(self, "No GCode",
 				"No G Code to analyze", wx.OK | wx.ICON_INFORMATION)
@@ -972,9 +978,6 @@ class PrinterDlg(wx.Frame):
 			
 		pl = sum([lt[x] for x in range(len(lt)) if x < lx])
 		rl = sum([lt[x] for x in range(len(lt)) if x > lx])
-		
-		if self.timesdlg is None:
-			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg, self.refreshTimes)
 			
 		self.timesdlg.updateTimes(tt, ept, pt, pl, lt[lx], rl, ptl)
 		self.timesdlg.Show()
@@ -1248,9 +1251,12 @@ class PrinterDlg(wx.Frame):
 					evt = ErrorEvent(message="Read Timeout retrieving Bed/Tool state", terminate=True)
 					wx.PostEvent(self, evt)
 			else:
-				temps = json["temperature"]
-				updateTemps = True	
 				self.toRead = 0
+				try:
+					temps = json["temperature"]
+					updateTemps = True	
+				except KeyError:
+					pass
 
 		nzct = 0
 		if updateTemps:
@@ -1375,7 +1381,8 @@ class PrinterDlg(wx.Frame):
 					self.stPrinted.SetLabel("%s / %s" % (approximateValue(self.filePos), self.approximateFileSize))
 
 		if not self.gcdlg is None and self.printerState == "Printing":
-			self.gcdlg.setPrintPosition(self.filePos)
+			if self.gcdlg.setPrintPosition(self.filePos):
+				self.refreshTimes()
 
 		if self.layerInfo != self.lastReportedLayerInfo:
 			self.layerInfo = self.lastReportedLayerInfo

@@ -163,20 +163,23 @@ class GCodeDlg(wx.Frame):
 
 	def setPrintPosition(self, pos):
 		if pos is None:
-			return
+			return False
 		self.printPosition = 0 if pos is None else pos
 		self.gcf.setPrintPosition(self.printPosition)
-
-		if not self.followPrint:
-			return
 
 		pLayer = self.gcode.findLayerByOffset(self.printPosition)
 		cLayer = self.gcf.getCurrentLayerNum()
 
+		if not self.followPrint:
+			return cLayer != pLayer
+		
 		if cLayer != pLayer:
 			self.gcf.setLayer(pLayer)
 			self.slLayer.SetValue(pLayer+1)
 			self.showLayerInfo()
+			return True
+		
+		return False
 
 	def showLayerInfo(self):
 		l = self.gcf.getCurrentLayer()
