@@ -31,7 +31,10 @@ from printerinstances import PrinterInstances
 from printerdlg import PrinterDlg
 from images import Images
 from settings import Settings
+from toolbox import ToolBox
 import wx.lib
+
+BTNDIM = (48, 48)
 
 cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 
@@ -44,6 +47,7 @@ class MyFrame(wx.Frame):
 		self.seq = 1
 
 		self.images = Images(os.path.join(cmdFolder, "images"))
+		self.toolicons = Images(os.path.join(cmdFolder, "images", "tools"))
 
 		self.printerList = []
 		self.settings = Settings(cmdFolder)
@@ -56,6 +60,9 @@ class MyFrame(wx.Frame):
 
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.AddSpacer(20)
+		
+		box = wx.StaticBox(self, -1, "Printers")
+		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 		self.buttons = {}
 		self.dialogs = {}
@@ -64,11 +71,34 @@ class MyFrame(wx.Frame):
 		for pn in self.plist:
 			b = wx.Button(self, wx.ID_ANY, pn)
 			self.Bind(wx.EVT_BUTTON, self.pressPrinter, b)
-			sz.Add(b)
-			sz.AddSpacer(10)
+			bsizer.Add(b, 0, wx.ALL, 5)
 			self.buttons[pn] = b
 
+		sz.Add(bsizer)
 		sz.AddSpacer(10)
+		
+		self.tbx = ToolBox(cmdFolder)
+		tools = self.tbx.getTools()
+		
+		for s in tools.keys():
+			box = wx.StaticBox(self, wx.ID_ANY, s)
+			bxsz = wx.StaticBoxSizer(box, wx.HORIZONTAL)
+			try:
+				ordr = tools[s]["order"]
+			except KeyError:
+				ordr = list(tools[s].keys())
+			for t in ordr:
+				i = tools[s][t]["icon"]
+				png = self.toolicons.getByName(i)
+					
+				b = wx.BitmapButton(self, wx.ID_ANY, png, size=BTNDIM)
+				bxsz.Add(b, 0, wx.ALL, 5)
+				b.SetToolTip(tools[s][t]["helptext"])
+				l = lambda evt, section=s, tool=t: self.onToolButton(evt, section, tool)
+				self.Bind(wx.EVT_BUTTON, l, b)
+				
+			sz.Add(bxsz)
+			sz.AddSpacer(10)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(20)
@@ -87,6 +117,9 @@ class MyFrame(wx.Frame):
 
 
 		self.Show()
+		
+	def onToolButton(self, evt, section, tool):
+		self.tbx.execute(section, tool)
 
 	def enableButtons(self):
 		for pn in self.plist:

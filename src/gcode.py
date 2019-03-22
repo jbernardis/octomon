@@ -2,7 +2,6 @@ import math
 import re
 
 
-# from tools import formatElapsed
 gcRegex = re.compile("[-]?\d+[.]?\d*")
 
 MOVE_MOVE = 'm'

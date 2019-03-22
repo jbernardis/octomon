@@ -4,7 +4,7 @@ Created on May 4, 2018
 @author: Jeff
 """
 import wx
-from tools import formatElapsed
+from utils import formatElapsed
 
 class TimesDlg(wx.Frame):
 	def __init__(self, parent, pname, images, cbexit, cbrefresh):

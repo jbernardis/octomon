@@ -5,7 +5,7 @@ Created on May 4, 2018
 """
 import wx
 import os
-from tools import formatElapsed
+from utils import formatElapsed
 
 BTNDIM = (32, 32) if os.name == 'posix' else (16, 16)
 

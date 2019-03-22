@@ -12,3 +12,5 @@ Need to make sure when downloading the selected file for gcode monitor that subd
 
 question - if I select a new file while paused, does the printer state move to operational, or does it stay paused?  This is a potential issue because I need to
 know when to enable print versus restart.
+
+study file dialog code and see if I can figure out how the dialog might get orphaned

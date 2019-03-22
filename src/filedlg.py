@@ -39,7 +39,7 @@ class FileDlg(wx.Frame):
 		self.parent = parent
 		self.images = self.parent.images
 		self.settings = self.parent.settings
-		self.server = self.parent.server
+		self.server = server
 		self.cb = cb
 
 		self.Bind(wx.EVT_CLOSE, self.onClose)

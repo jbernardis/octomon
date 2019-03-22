@@ -11,7 +11,7 @@ import pprint
 
 from imagemap import ImageMap
 from heater import Heater
-from tools import formatElapsed, approximateValue
+from utils import formatElapsed, approximateValue
 from fan import Fan
 from filedlg import FileDlg
 from uploaddest import UploadDestinationDlg
@@ -611,7 +611,10 @@ class PrinterDlg(wx.Frame):
 							   "plugin": self.pluginUpdate})
 
 	def MenuFileList(self, evt):
-		self.fileDlg = FileDlg(self, self.server, self.pname, self.dismissFileDlg)
+		if self.fileDlg is None:
+			self.fileDlg = FileDlg(self, self.server, self.pname, self.dismissFileDlg)
+		else:
+			self.fileDlg.Raise()
 
 	def MenuFileUpload(self, evt):
 		wildcard = "GCode (*.gcode)|*.gcode;*.GCODE|" \
@@ -981,6 +984,7 @@ class PrinterDlg(wx.Frame):
 			
 		self.timesdlg.updateTimes(tt, ept, pt, pl, lt[lx], rl, ptl)
 		self.timesdlg.Show()
+		self.timesdlg.Raise()
 		
 
 	def exitTimesDlg(self):
