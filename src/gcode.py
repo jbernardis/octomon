@@ -36,17 +36,17 @@ class GCMove:
 		return self.offset
 	
 	def calcMoveTime(self, lx, ly, lz, le, lf, acceleration):
-		speed = self.f / 60.0
-		mvTime = 0.0
-		
+		speed = lf / 60.0
+
 		dx = self.x - lx
 		dy = self.y - ly
 		dz = self.z - lz
 		
+		dist = 0
 		if self.mtype in [MOVE_RETRACT, MOVE_EXTRUDE]:
 			de = self.e - le
 			dist = de
-			
+
 		elif self.mtype in [MOVE_MOVE, MOVE_PRINT]:
 			dist = math.hypot(dx, dy)
 			if dist == 0:
@@ -81,7 +81,7 @@ class GCMove:
 class GCLayer:
 	def __init__(self, ht, nExtr, fDiam):
 		# print ("new layer at height {:f}".format(ht))
-		self.height = ht;
+		self.height = ht
 		self.nExtr = nExtr
 		self.filamentDiameter = fDiam
 		self.moves = []
@@ -92,6 +92,7 @@ class GCLayer:
 		self.extrudeMoves = 0
 		self.layerTime = 0.0
 		self.filament = [0.0] * nExtr
+		self.filamentVolume = [0*x for x in range(self.nExtr)]
 
 	def getMoves(self):
 		return self.moves
@@ -146,7 +147,8 @@ class GCode:
 		self.relativeMove = False
 		self.hasMovement = False
 		self.hasFilament = False
-		
+		self.resetFilament = False
+
 		self.filament = [0.0] * self.nExtr
 		self.tool = 0
 
@@ -168,7 +170,7 @@ class GCode:
 			offset += len(gl) + 1
 
 			ln += 1
-			self.parseGLine(gl, offset)
+			self.parseGLine(gl)
 			moveType = None
 			dFilament = 0.0
 			if self.hasMovement:
@@ -273,7 +275,7 @@ class GCode:
 
 		self.layers = nl
 
-	def parseGLine(self, gl, offset):
+	def parseGLine(self, gl):
 		self.hasMovement = False
 		self.hasFilament = False
 		self.resetFilament = False
@@ -340,7 +342,7 @@ class GCode:
 				self.tool = int(cmd[1:])
 				if self.tool > self.nExtr or self.tool < 0:
 					self.tool = 0
-			except:
+			except ValueError:
 				self.tool = 0
 
 		else:
@@ -354,5 +356,5 @@ class GCode:
 				return v+last
 			else:
 				return v
-		except:
+		except ValueError:
 			return last

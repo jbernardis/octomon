@@ -744,6 +744,7 @@ class PrinterDlg(wx.Frame):
 	def exitGCDlg(self):
 		self.gcdlg.Destroy()
 		self.gcdlg = None
+		self.GCode = None
 
 	def MenuViewTerminal(self, evt):
 		self.termdlg = TerminalDlg(self, self.server, self.pname, self.settings, self.images, self.exitTermDlg)
@@ -930,10 +931,13 @@ class PrinterDlg(wx.Frame):
 			return 
 		
 		if self.GCode is None:
-			dlg = wx.MessageDialog(self, "No GCode",
-				"No G Code to analyze", wx.OK | wx.ICON_INFORMATION)
+			dlg = wx.MessageDialog(self, "No GCode to Analyze",
+				"No G Code", wx.OK | wx.ICON_INFORMATION)
 			dlg.ShowModal()
 			dlg.Destroy()
+			
+			self.timesdlg.Destroy()
+			self.timesdlg = None
 			return
 		
 		tt = self.GCode.getPrintTime()
@@ -942,13 +946,6 @@ class PrinterDlg(wx.Frame):
 		ept = self.estimatedPrintTime		
 		pt = self.printTime
 		ptl = self.printTimeLeft
-		
-		if ept is None or pt is None or ptl is None:
-			dlg = wx.MessageDialog(self, "No Times",
-				"Octoprint has provided no Time values", wx.OK | wx.ICON_INFORMATION)
-			dlg.ShowModal()
-			dlg.Destroy()
-			return
 		
 		li = self.layerInfo
 		msg = None
@@ -961,28 +958,31 @@ class PrinterDlg(wx.Frame):
 			if len(lil) != 2:
 				lx = 0
 				ln = len(lt)
-				msg = "Unable to parse layer information provided by Octoprint ({})\nAssuming layer {} of {}".format(li, lx, ln)
+				msg = "Unable to parse layer info provided by Octoprint ({})\nAssuming layer {} of {}".format(li, lx, ln)
 			else:
 				try:
 					lx = int(lil[0])
 				except ValueError:
-					msg = "Unable to parse layer number from information provided by Octoprint ({})\nUsing layer 0".format(lil[0])
+					msg = "Unable to parse layer number from Octoprint ({})\nUsing layer 0".format(lil[0])
 					lx = 0
 				try:
 					ln = int(lil[1])
 				except ValueError:
 					ln = len(lt)
-					msg = "Unable to parse layer count from information provided by Octoprint ({})\nUsing count {}".format(lil[1], ln)
+					msg = "Unable to parse layer count from Octoprint ({})\nUsing count {}".format(lil[1], ln)
 
 		if msg is not None:
-			dlg = wx.MessageDialog(self, "G Code Warning", msg, wx.OK | wx.ICON_INFORMATION)
-			dlg.ShowModal()
-			dlg.Destroy()
+			self.logMessage(msg)
 			
 		pl = sum([lt[x] for x in range(len(lt)) if x < lx])
 		rl = sum([lt[x] for x in range(len(lt)) if x > lx])
+		
+		try:
+			clt = lt[lx]
+		except IndexError:
+			clt = None
 			
-		self.timesdlg.updateTimes(tt, ept, pt, pl, lt[lx], rl, ptl)
+		self.timesdlg.updateTimes(tt, ept, pt, pl, clt, rl, ptl)
 		self.timesdlg.Show()
 		self.timesdlg.Raise()
 		

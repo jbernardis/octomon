@@ -147,13 +147,35 @@ class TimesDlg(wx.Frame):
 		self.Fit()
 
 	def updateTimes(self, totCalc, totOct, elapsed, prevLayers, currentLayer, timeLeftCalc, timeLeftOct):
-		self.totalPTOct.SetLabel(formatElapsed(totOct))
-		self.totalPTCalc.SetLabel(formatElapsed(totCalc))		
-		self.totalElapsed.SetLabel(formatElapsed(elapsed))
+		if totOct is None:
+			self.totalPTOct.SetLabel("??")
+		else:
+			self.totalPTOct.SetLabel(formatElapsed(totOct))
+			
+		self.totalPTCalc.SetLabel(formatElapsed(totCalc))	
+		
+		if elapsed is None:	
+			self.totalElapsed.SetLabel("??")
+		else:
+			self.totalElapsed.SetLabel(formatElapsed(elapsed))
+			
 		self.totalPrevLayers.SetLabel(formatElapsed(prevLayers))
-		self.totalDifference.SetLabel(formatElapsed(elapsed-prevLayers))
-		self.totalCurrentLayer.SetLabel(formatElapsed(currentLayer))
-		self.totalRemainOct.SetLabel(formatElapsed(timeLeftOct))
+		
+		if elapsed is None:
+			self.totalDifference.SetLabel("??")
+		else:
+			self.totalDifference.SetLabel(formatElapsed(elapsed-prevLayers))
+			
+		if currentLayer is None:
+			self.totalCurrentLayer.SetLabel("NA")
+		else:
+			self.totalCurrentLayer.SetLabel(formatElapsed(currentLayer))
+
+		if timeLeftOct is None:		
+			self.totalRemainOct.SetLabel("??")
+		else:
+			self.totalRemainOct.SetLabel(formatElapsed(timeLeftOct))
+		
 		self.totalRemainCalc.SetLabel(formatElapsed(timeLeftCalc))
 	
 	def onRefresh(self, evt):

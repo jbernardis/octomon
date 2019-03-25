@@ -16,6 +16,9 @@ class ConnectDlg(wx.Dialog):
 		self.parent = parent
 		self.images = parent.images
 
+		self.port = None
+		self.baudrate = None
+
 		sz = wx.BoxSizer(wx.HORIZONTAL)
 		sz.AddSpacer(10)
 
@@ -81,15 +84,15 @@ class ConnectDlg(wx.Dialog):
 	def getResults(self):
 		return self.baudrate, self.port
 		
-	def onBConnect(self, evt):
+	def onBConnect(self, _):
 		v = self.chPorts.GetSelection()
 		self.port = self.lPorts[v]
 		v = self.chBaudrates.GetSelection()
 		self.baudrate = self.lBaudrates[v]
 		self.EndModal(wx.ID_OK)
 		
-	def onBCancel(self, evt):
+	def onBCancel(self, _):
 		self.EndModal(wx.ID_CANCEL)
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.EndModal(wx.ID_CANCEL)
