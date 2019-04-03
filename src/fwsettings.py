@@ -113,11 +113,6 @@ class FwSettings(object):
 		return True
 
 	def parseCmd(self, cmd, msg, tags):
-		print("=============")
-		print(msg)
-		print("=============")
 		for p in tags:
-			print("%s" % p)
 			self.setValue("%s_%s" % (cmd, p), get_float(msg, p))
-			print("%s_%s: %f" % (cmd, p, get_float(msg, p)))
 		self.hasValues[cmd] = True

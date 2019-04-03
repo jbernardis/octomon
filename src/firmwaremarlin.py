@@ -122,7 +122,6 @@ class FirmwareDlg(wx.Frame):
 		self.parent = parent
 		self.hasZProbe = self.parent.hasZProbe
 		self.useM205Q = self.parent.useM205Q
-		print("fwdlg: printer %s: Probe: %s Q: %s" % (pname, str(self.hasZProbe), str(self.useM205Q)))
 
 		self.grpinfo = copy.deepcopy(grpinfo)
 

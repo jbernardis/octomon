@@ -7,8 +7,6 @@ import os
 import wx.lib
 import subprocess
 
-import pprint
-
 from imagemap import ImageMap
 from heater import Heater
 from utils import formatElapsed, approximateValue
@@ -84,7 +82,6 @@ class PrinterDlg(wx.Frame):
 
 		self.hasZProbe = self.settings.getSetting("haszprobe", pname, False)
 		self.useM205Q = self.settings.getSetting("usem205q", pname, False)
-		print("printer %s: Probe: %s Q: %s" % (pname, str(self.hasZProbe), str(self.useM205Q)))
 		self.flash = FwSettings(self.hasZProbe, self.useM205Q)
 
 		self.fileDlg = None
@@ -633,7 +630,6 @@ class PrinterDlg(wx.Frame):
 		if rc == wx.ID_OK:
 			path = dlg.GetPath().encode('ascii', 'ignore').decode("utf-8") 
 			dpath = os.path.dirname(path)
-			pprint.pprint(dpath)
 			self.settings.setSetting("lastDirectory", dpath)
 
 		dlg.Destroy()
@@ -701,7 +697,6 @@ class PrinterDlg(wx.Frame):
 				dlg.Destroy()
 				
 		else:
-			print()
 			dlg = wx.MessageDialog(self, "Unable to retrieve plugin information.  rc = %d" % rc,
 				"Retrieve Updates Error", wx.OK | wx.ICON_ERROR)
 			dlg.ShowModal()
