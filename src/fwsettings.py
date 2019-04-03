@@ -5,35 +5,31 @@
 """
 import re
 
-FwMsgMap = {"M92": ["X", "Y", "Z", "E"],
-			"M201": ["X", "Y", "Z", "E"],
-			"M203": ["X", "Y", "Z", "E"],
-			"M204": ["P", "R", "T"],
-			"M205": ["S", "T", "B", "X", "Z", "E"],
-			"M301": ["P", "I", "D"],
-			"M851": ["Z"]}
-
-ZProbeKeys = ["M851"]
-
 gcRegex = re.compile("[-]?\d+[.]?\d*")
+
+def buildMap(hasZProbe, useM205Q):
+	fwmap = {"M92" : ["X", "Y", "Z", "E"],
+		"M201" : ["X", "Y", "Z", "E"],
+		"M203" : ["X", "Y", "Z", "E"],
+		"M204" : ["P", "R", "T"],
+		"M301" : ["P", "I", "D"] }
+
+	if useM205Q:
+		fwmap["M205"] = ["S", "T", "Q", "X", "Z", "E"]
+	else:
+		fwmap["M205"] = ["S", "T", "B", "X", "Z", "E"]
+
+	if hasZProbe:
+		fwmap["M851"] = ["Z"]
+
+	return fwmap
 
 class FwCollector:
 	def __init__(self, hasZProbe, useM205Q):
 		self.container = None
 		self.hasZProbe = hasZProbe
 		self.useM205Q = useM205Q
-		self.FwMsgMap = {}
-		for k in FwMsgMap.keys():
-			if k == "M205" and self.useM205Q:
-				newmap = []
-				for c in FwMsgMap[k]:
-					if c == "B":
-						newmap.append("Q")
-					else:
-						newmap.append(c)
-				self.FwMsgMap[k] = newmap
-			else:
-				self.FwMsgMap[k] = [c for c in FwMsgMap[k]]
+		self.FwMsgMap = buildMap(hasZProbe, useM205Q)
 
 	def start(self, container):
 		self.container = container
@@ -48,8 +44,7 @@ class FwCollector:
 			return
 
 		if cmd in self.FwMsgMap.keys():
-			if self.hasZProbe or cmd not in ZProbeKeys:
-				self.container.parseCmd(cmd, msg, self.FwMsgMap[cmd])
+			self.container.parseCmd(cmd, msg, self.FwMsgMap[cmd])
 
 	def collectionComplete(self):
 		if self.container is None:
@@ -72,18 +67,7 @@ class FwSettings(object):
 	def __init__(self, hasZProbe, useM205Q):
 		self.hasZProbe = hasZProbe
 		self.useM205Q = useM205Q
-		self.FwMsgMap = {}
-		for k in FwMsgMap.keys():
-			if k == "M205" and self.useM205Q:
-				newmap = []
-				for c in FwMsgMap[k]:
-					if c == "B":
-						newmap.append("Q")
-					else:
-						newmap.append(c)
-				self.FwMsgMap[k] = newmap
-			else:
-				self.FwMsgMap[k] = [c for c in FwMsgMap[k]]
+		self.FwMsgMap = buildMap(hasZProbe, useM205Q)
 		self.hasValues = {}
 		self.values = {}
 		self.empty()
@@ -91,8 +75,7 @@ class FwSettings(object):
 	def empty(self):
 		self.hasValues = {}
 		for k in self.FwMsgMap.keys():
-			if self.hasZProbe or k not in ZProbeKeys:
-				self.hasValues[k] = False
+			self.hasValues[k] = False
 
 		self.values = {}
 

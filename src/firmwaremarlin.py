@@ -2,26 +2,32 @@ import os
 import wx
 import wx.lib.newevent
 import configparser
-import copy
 
 from fwsettings import FwSettings
 
 wildcard = "Firmware Files (*.fw)|*.fw|All Files (*.*)|*.*"
 
+def buildmap(hasZProbe, useM205Q):
+	grpinfo = {'m92' : ['Steps per Unit - M92', 4, ['x', 'y', 'z', 'e'], ['X Steps', 'Y Steps', 'Z Steps', 'E Steps']],
+			'm201' : ['Max Acceleration (mm/s2) - M201', 4, ['x', 'y', 'z', 'e'], ['X Maximum Acceleration', 'Y Maximum Acceleration', 'Z Maximum Acceleration', 'E Maximum Acceleration']],
+			'm203' : ['Max Feed Rates (mm/s) - M203', 4, ['x', 'y', 'z', 'e'], ['X Maximum Feed Rate', 'Y Maximum Feed Rate', 'Z Maximum Feed Rate', 'E Maximum Feed Rate']],
+			'm204' : ['Acceleration - M204', 3, ['p', 'r', 't'], ['Maximum Print Acceleration', 'Maximum Retraction Acceleration', 'Maximum Travel Acceleration']],
+			'm301' : ['PID - M301', 3, ['p', 'i', 'd'], ['Proportional Value', 'Integral Value', 'Derivative Value']] }
 
-grpinfo = {'m92' : ['Steps per Unit - M92', 4, ['x', 'y', 'z', 'e'], ['X Steps', 'Y Steps', 'Z Steps', 'E Steps']],
-		'm201' : ['Max Acceleration (mm/s2) - M201', 4, ['x', 'y', 'z', 'e'], ['X Maximum Acceleration', 'Y Maximum Acceleration', 'Z Maximum Acceleration', 'E Maximum Acceleration']],
-		'm203' : ['Max Feed Rates (mm/s) - M203', 4, ['x', 'y', 'z', 'e'], ['X Maximum Feed Rate', 'Y Maximum Feed Rate', 'Z Maximum Feed Rate', 'E Maximum Feed Rate']],
-		'm204' : ['Acceleration - M204', 3, ['p', 'r', 't'], ['Maximum Print Acceleration', 'Maximum Retraction Acceleration', 'Maximum Travel Acceleration']],
-		'm205' : ['Advanced - M205', 6, ['s', 't', 'b', 'x', 'z', 'e'], ['Minimum Feed Rate', 'Minimum Travel', 'Minimum Segment Time', 'Maximum XY Jerk', 'Maximum Z Jerk', 'Maximum E Jerk']],
-		'm301' : ['PID - M301', 3, ['p', 'i', 'd'], ['Proportional Value', 'Integral Value', 'Derivative Value']],
-		'm851': ['Z Probe Offset - M851', 1, ['z'], ['Z Offset from extruder']]}
+	if useM205Q:
+		grpinfo['m205'] = ['Advanced - M205', 6, ['s', 't', 'q', 'x', 'z', 'e'], ['Minimum Feed Rate', 'Minimum Travel', 'Minimum Segment Time', 'Maximum XY Jerk', 'Maximum Z Jerk', 'Maximum E Jerk']]
+	else:
+		grpinfo['m205'] = ['Advanced - M205', 6, ['s', 't', 'b', 'x', 'z', 'e'], ['Minimum Feed Rate', 'Minimum Travel', 'Minimum Segment Time', 'Maximum XY Jerk', 'Maximum Z Jerk', 'Maximum E Jerk']]
 
-grporder = ['m92', 'm201', 'm203', 'm204', 'm205', 'm301', 'm851']
+	grporder = ['m92', 'm201', 'm203', 'm204', 'm205', 'm301']
 
-zprobekeys = ['m851']
+	if hasZProbe:
+		grpinfo['m851'] = ['Z Probe Offset - M851', 1, ['z'], ['Z Offset from extruder']]
+		grporder.append('m851')
 
-def getFirmwareProfile(fn, container, grpInfo):
+	return grpinfo, grporder
+
+def getFirmwareProfile(fn, container, grpinfo, grporder):
 	cfg = configparser.ConfigParser()
 
 	if not cfg.read(fn):
@@ -31,37 +37,36 @@ def getFirmwareProfile(fn, container, grpInfo):
 	if not cfg.has_section(section):
 		return False, "Firmware profile file %s does not have %s section." % (fn, section)
 
+
 	for g in grporder:
-		if container.hasZProbe or g not in zprobekeys:
-			for i in grpInfo[g][2]:
-				k = "%s_%s" % (g, i)
-				if not cfg.has_option(section, k):
-					v = None
-				else:
-					v = str(cfg.get(section, k))
-	
-				container.setValue(k, v)
+		for i in grpinfo[g][2]:
+			k = "%s_%s" % (g, i)
+			if not cfg.has_option(section, k):
+				v = None
+			else:
+				v = str(cfg.get(section, k))
+
+			container.setValue(k, v)
    	
 	return True, "Firmware profile file %s successfully read" % fn
 
 
-def putFirmwareProfile(fn, container, grpInfo):
+def putFirmwareProfile(fn, container, grpinfo, grporder):
 	cfg = configparser.ConfigParser()
 
 	section = "Firmware"
 	cfg.add_section(section)
 	for g in grporder:
-		if container.hasZProbe or g not in zprobekeys:
-			for i in grpInfo[g][2]:
-				k = "%s_%s" % (g, i)
-				v = container.getValue(k)
-				if v is not None:
-					cfg.set(section, k, str(v))
-				else:
-					try:
-						cfg.remove_option(section, k)
-					except:
-						pass
+		for i in grpinfo[g][2]:
+			k = "%s_%s" % (g, i)
+			v = container.getValue(k)
+			if v is not None:
+				cfg.set(section, k, str(v))
+			else:
+				try:
+					cfg.remove_option(section, k)
+				except:
+					pass
 
 	try:
 		with open(fn, "w") as configfile:
@@ -123,12 +128,7 @@ class FirmwareDlg(wx.Frame):
 		self.hasZProbe = self.parent.hasZProbe
 		self.useM205Q = self.parent.useM205Q
 
-		self.grpinfo = copy.deepcopy(grpinfo)
-
-		for k in self.grpinfo.keys():
-			if k == 'm205' and self.useM205Q:
-				newmap = ['q' if c == 'b' else c for c in self.grpinfo[k][2]]
-				self.grpinfo[k][2] = newmap
+		self.grpinfo, self.grporder = buildmap(self.hasZProbe, self.useM205Q)
 
 		self.server = server
 		self.eeprom = FwSettings(self.hasZProbe, self.useM205Q)
@@ -139,7 +139,7 @@ class FirmwareDlg(wx.Frame):
 		self.settings = self.parent.settings
 
 		self.eepromFileName = "eeprom.%s.marlin" % pname
-		rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
+		rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 		self.sizer = wx.GridBagSizer()
@@ -164,10 +164,7 @@ class FirmwareDlg(wx.Frame):
 		t = wx.StaticText(self, wx.ID_ANY, "  ", size=(20, -1))
 		self.sizer.Add(t, pos=(0, 8), flag=wx.ALIGN_CENTER)
 
-		for g in grporder:
-			if not self.hasZProbe and g in zprobekeys:
-				continue
-			
+		for g in self.grporder:
 			item = self.grpinfo[g]
 				
 			t = TextBox(self, item[0])
@@ -290,9 +287,6 @@ class FirmwareDlg(wx.Frame):
 		self.sendGroupToFlash(gk)
 
 	def sendGroupToFlash(self, gk):
-		if not self.hasZProbe and gk in zprobekeys:
-			return
-		
 		cmd = gk.upper()
 		nterms = 0
 		item = self.grpinfo[gk]
@@ -313,7 +307,7 @@ class FirmwareDlg(wx.Frame):
 			self.server.command(cmd)
 
 	def onCopyAllToFlash(self, _):
-		for g in grporder:
+		for g in self.grporder:
 			self.sendGroupToFlash(g)
 
 	def onCopyFlashToEEProm(self, _):
@@ -323,7 +317,7 @@ class FirmwareDlg(wx.Frame):
 			self.itemMap[i][2].setText(v)
 			self.eeprom.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
+		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 	def onCopyEEPromToFlash(self, _):
@@ -338,7 +332,7 @@ class FirmwareDlg(wx.Frame):
 			self.itemMap[i][1].setText(v)
 			self.flash.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
+		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 		self.enableButtons(True)
 
@@ -362,7 +356,7 @@ class FirmwareDlg(wx.Frame):
 			dpath = os.path.dirname(path)
 			self.settings.setSetting("lastFwDirectory", dpath)
 
-			rc, msg = getFirmwareProfile(path, self.working, self.grpinfo)
+			rc, msg = getFirmwareProfile(path, self.working, self.grpinfo, self.grporder)
 			if rc:
 				for k in self.itemMap.keys():
 					wVal = self.itemMap[k][0]
@@ -396,7 +390,7 @@ class FirmwareDlg(wx.Frame):
 		if ext == "":
 			path += ".fw"
 
-		rc, msg = putFirmwareProfile(path, self.working, self.grpinfo)
+		rc, msg = putFirmwareProfile(path, self.working, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 	def onClose(self, _):
