@@ -37,6 +37,9 @@ class GcFrame (wx.Window):
 		self.currentlx = None
 		self.shiftX = 0
 		self.shiftY = 0
+		self.buffer = None
+		self.penMap = {}
+		self.bkgPenMap = {}
 
 		self.followprint = True
 
@@ -71,21 +74,21 @@ class GcFrame (wx.Window):
 		self.Bind(wx.EVT_MOTION, self.onMotion)
 		self.Bind(wx.EVT_MOUSEWHEEL, self.onMouseWheel, self)
 
-		if gcode != None:
+		if gcode is None:
 			self.loadGCode(gcode)
 
 	def setPenMap(self):
-		self.penMap = { MOVE_PRINT: self.printPens }
-		self.penMap[MOVE_MOVE] = self.movePens if self.showmoves else self.pensInvisible
-		self.penMap[MOVE_EXTRUDE] = self.revRetractionPens if self.showrevretractions else self.pensInvisible
-		self.penMap[MOVE_RETRACT] = self.retractionPens if self.showretractions else self.pensInvisible
+		self.penMap = { MOVE_PRINT: self.printPens,
+						MOVE_MOVE: self.movePens if self.showmoves else self.pensInvisible,
+						MOVE_EXTRUDE: self.revRetractionPens if self.showrevretractions else self.pensInvisible,
+						MOVE_RETRACT: self.retractionPens if self.showretractions else self.pensInvisible }
 
-		self.bkgPenMap = { MOVE_PRINT: self.backgroundPen }
-		self.bkgPenMap[MOVE_MOVE] = self.backgroundPen if self.showmoves else self.penInvisible
-		self.bkgPenMap[MOVE_EXTRUDE] = self.backgroundPen if self.showrevretractions else self.penInvisible
-		self.bkgPenMap[MOVE_RETRACT] = self.backgroundPen if self.showretractions else self.penInvisible
+		self.bkgPenMap = { MOVE_PRINT: self.backgroundPen,
+							MOVE_MOVE: self.backgroundPen if self.showmoves else self.penInvisible,
+							MOVE_EXTRUDE: self.backgroundPen if self.showrevretractions else self.penInvisible,
+							MOVE_RETRACT: self.backgroundPen if self.showretractions else self.penInvisible }
 
-	def onSize(self, evt):
+	def onSize(self, _):
 		self.initBuffer()
 
 	def setFollowPrint(self, flag=True):
@@ -120,7 +123,7 @@ class GcFrame (wx.Window):
 		self.printPosition = pos
 		self.redrawCurrentLayer()
 
-	def onPaint(self, evt):
+	def onPaint(self, _):
 		dc = wx.BufferedPaintDC(self, self.buffer)  # @UnusedVariable
 
 	def onLeftDown(self, evt):
@@ -129,7 +132,7 @@ class GcFrame (wx.Window):
 		self.CaptureMouse()
 		self.SetFocus()
 
-	def onLeftUp(self, evt):
+	def onLeftUp(self, _):
 		if self.HasCapture():
 			self.ReleaseMouse()
 
@@ -189,7 +192,7 @@ class GcFrame (wx.Window):
 		self.redrawCurrentLayer()
 
 	def initBuffer(self):
-		w, h = self.GetClientSize();
+		w, h = self.GetClientSize()
 		self.buffer = wx.Bitmap(w, h)
 		self.redrawCurrentLayer()
 
@@ -279,7 +282,7 @@ class GcFrame (wx.Window):
 			else:
 				dc.SetPen(wx.Pen(dk_Gray, 1))
 			x = (x - self.offsetx)*self.zoom*self.scale
-			if x >= 0 and x <= self.buildarea[0]*self.scale:
+			if 0 <= x <= self.buildarea[0]*self.scale:
 				dc.DrawLine(x, yleft, x, yright)
 
 		xtop = (0 - self.offsetx)*self.zoom*self.scale
@@ -296,7 +299,7 @@ class GcFrame (wx.Window):
 			else:
 				dc.SetPen(wx.Pen(dk_Gray, 1))
 			y = (y - self.offsety)*self.zoom*self.scale
-			if y >= 0 and y <= self.buildarea[1]*self.scale:
+			if 0 <= y <= self.buildarea[1]*self.scale:
 				dc.DrawLine(xtop, y, xbottom, y)
 
 	def drawLayer(self, dc, lx):
@@ -351,4 +354,4 @@ class GcFrame (wx.Window):
 	def transform(self, ptx, pty):
 		x = (ptx - self.offsetx + self.shiftX)*self.zoom*self.scale
 		y = (self.buildarea[1]-pty - self.offsety - self.shiftY)*self.zoom*self.scale
-		return (x, y)
+		return x, y

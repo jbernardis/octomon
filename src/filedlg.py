@@ -41,6 +41,7 @@ class FileDlg(wx.Frame):
 		self.settings = self.parent.settings
 		self.server = server
 		self.cb = cb
+		self.item = None
 
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 		
@@ -212,7 +213,7 @@ class FileDlg(wx.Frame):
 			self.cbDelete.Enable(False)
 			self.bDownload.Enable(False)
 
-	def onBSelect(self, evt):
+	def onBSelect(self, _):
 		self.selectFile()
 		
 	def selectFile(self):
@@ -221,13 +222,13 @@ class FileDlg(wx.Frame):
 					 "origin": self.selectedItem.origin,
 					 "path": self.selectedItem.path})
 
-	def onCbDelete(self, evt):
+	def onCbDelete(self, _):
 		if self.cbDelete.GetValue():
 			self.bDelete.Enable(True)
 		else:
 			self.bDelete.Enable(False)
 
-	def onBDelete(self, evt):
+	def onBDelete(self, _):
 		if self.selectedItem:
 			try:
 				rc = self.server.gfile.deleteFile(self.selectedItem.origin, self.selectedItem.path)
@@ -259,14 +260,14 @@ class FileDlg(wx.Frame):
 				self.tree.ClearFocusedItem()
 				self.enableControls(False, False)
 
-	def onBDownload(self, evt):
+	def onBDownload(self, _):
 		if self.selectedItem:
 			self.cb({"action": "download",
 					 "origin": self.selectedItem.origin,
 					 "path": self.selectedItem.path,
 					 "url": self.selectedItem.downloadUrl})
 			
-	def onBRefresh(self, evt):
+	def onBRefresh(self, _):
 		self.tree.DeleteChildren(self.root)
 		self.fmap = self.getFileMap()
 		self.populateTree()
@@ -280,7 +281,7 @@ class FileDlg(wx.Frame):
 			self.tree.CollapseAll()
 			self.tree.Expand(self.root)
 			
-	def onCbExpandAll(self, evt):
+	def onCbExpandAll(self, _):
 		self.expandAll = self.cbExpandAll.GetValue()
 		self.settings.setSetting("fileexpandall", str(self.expandAll))
 		if self.expandAll:
@@ -289,7 +290,7 @@ class FileDlg(wx.Frame):
 			self.tree.CollapseAll()
 			self.tree.Expand(self.root)
 			
-	def onCbIncludeSd(self, evt):
+	def onCbIncludeSd(self, _):
 		self.includeSd = self.cbIncludeSd.GetValue()
 		self.settings.setSetting("filesd", str(self.includeSd))
 		
@@ -320,8 +321,8 @@ class FileDlg(wx.Frame):
 		else:
 			self.selectedItem = None
 			
-	def onDoubleClick(self, evt):
+	def onDoubleClick(self, _):
 		self.selectFile()
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.cb({})

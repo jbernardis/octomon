@@ -17,14 +17,26 @@ ZProbeKeys = ["M851"]
 
 gcRegex = re.compile("[-]?\d+[.]?\d*")
 
-
 class FwCollector:
-	def __init__(self):
+	def __init__(self, hasZProbe, useM205Q):
 		self.container = None
+		self.hasZProbe = hasZProbe
+		self.useM205Q = useM205Q
+		self.FwMsgMap = {}
+		for k in FwMsgMap.keys():
+			if k == "M205" and self.useM205Q:
+				newmap = []
+				for c in FwMsgMap[k]:
+					if c == "B":
+						newmap.append("Q")
+					else:
+						newmap.append(c)
+				self.FwMsgMap[k] = newmap
+			else:
+				self.FwMsgMap[k] = [c for c in FwMsgMap[k]]
 
-	def start(self, container, haszprobe):
+	def start(self, container):
 		self.container = container
-		self.hasZProbe = haszprobe
 		self.container.empty()
 
 	def checkFwCommand(self, msg):
@@ -35,9 +47,9 @@ class FwCollector:
 		except IndexError:
 			return
 
-		if cmd in FwMsgMap.keys():
+		if cmd in self.FwMsgMap.keys():
 			if self.hasZProbe or cmd not in ZProbeKeys:
-				self.container.parseCmd(cmd, msg, FwMsgMap[cmd])
+				self.container.parseCmd(cmd, msg, self.FwMsgMap[cmd])
 
 	def collectionComplete(self):
 		if self.container is None:
@@ -49,18 +61,36 @@ class FwCollector:
 
 		return False
 
-
-FWC = FwCollector()
-
+def get_float(paramStr, which):
+	try:
+		v = float(gcRegex.findall(paramStr.split(which)[1])[0])
+		return v
+	except:
+		return None
 
 class FwSettings(object):
-	def __init__(self, hasZProbe):
+	def __init__(self, hasZProbe, useM205Q):
 		self.hasZProbe = hasZProbe
+		self.useM205Q = useM205Q
+		self.FwMsgMap = {}
+		for k in FwMsgMap.keys():
+			if k == "M205" and self.useM205Q:
+				newmap = []
+				for c in FwMsgMap[k]:
+					if c == "B":
+						newmap.append("Q")
+					else:
+						newmap.append(c)
+				self.FwMsgMap[k] = newmap
+			else:
+				self.FwMsgMap[k] = [c for c in FwMsgMap[k]]
+		self.hasValues = {}
+		self.values = {}
 		self.empty()
 
 	def empty(self):
 		self.hasValues = {}
-		for k in FwMsgMap.keys():
+		for k in self.FwMsgMap.keys():
 			if self.hasZProbe or k not in ZProbeKeys:
 				self.hasValues[k] = False
 
@@ -69,7 +99,7 @@ class FwSettings(object):
 	def getValue(self, k):
 		try:
 			return self.values[k.lower()]
-		except Exception:
+		except:
 			return None
 
 	def setValue(self, k, v):
@@ -83,13 +113,11 @@ class FwSettings(object):
 		return True
 
 	def parseCmd(self, cmd, msg, tags):
+		print("=============")
+		print(msg)
+		print("=============")
 		for p in tags:
-			self.setValue("%s_%s" % (cmd, p), self.__get_float(msg, p))
+			print("%s" % p)
+			self.setValue("%s_%s" % (cmd, p), get_float(msg, p))
+			print("%s_%s: %f" % (cmd, p, get_float(msg, p)))
 		self.hasValues[cmd] = True
-
-	def __get_float(self, paramStr, which):
-		try:
-			v = float(gcRegex.findall(paramStr.split(which)[1])[0])
-			return v
-		except:
-			return None

@@ -2,6 +2,7 @@ import os
 import wx
 import wx.lib.newevent
 import configparser
+import copy
 
 from fwsettings import FwSettings
 
@@ -20,7 +21,7 @@ grporder = ['m92', 'm201', 'm203', 'm204', 'm205', 'm301', 'm851']
 
 zprobekeys = ['m851']
 
-def getFirmwareProfile(fn, container):
+def getFirmwareProfile(fn, container, grpInfo):
 	cfg = configparser.ConfigParser()
 
 	if not cfg.read(fn):
@@ -32,7 +33,7 @@ def getFirmwareProfile(fn, container):
 
 	for g in grporder:
 		if container.hasZProbe or g not in zprobekeys:
-			for i in grpinfo[g][2]:
+			for i in grpInfo[g][2]:
 				k = "%s_%s" % (g, i)
 				if not cfg.has_option(section, k):
 					v = None
@@ -44,14 +45,14 @@ def getFirmwareProfile(fn, container):
 	return True, "Firmware profile file %s successfully read" % fn
 
 
-def putFirmwareProfile(fn, container):
+def putFirmwareProfile(fn, container, grpInfo):
 	cfg = configparser.ConfigParser()
 
 	section = "Firmware"
 	cfg.add_section(section)
 	for g in grporder:
 		if container.hasZProbe or g not in zprobekeys:
-			for i in grpinfo[g][2]:
+			for i in grpInfo[g][2]:
 				k = "%s_%s" % (g, i)
 				v = container.getValue(k)
 				if v is not None:
@@ -95,14 +96,14 @@ class TextBox(wx.Window):
 	def getText(self):
 		return self.text
 
-	def OnPaint(self, evt):
+	def OnPaint(self, _):
 		sz = self.GetSize()
 		dc = wx.PaintDC(self)
 		w,h = dc.GetTextExtent(self.text)
 		dc.Clear()
 		dc.DrawText(self.text, (sz.width-w)/2, (sz.height-h)/2)
 
-	def OnSize(self, evt):
+	def OnSize(self, _):
 		self.Refresh()
 
 	def DoGetBestSize(self):
@@ -120,16 +121,26 @@ class FirmwareDlg(wx.Frame):
 
 		self.parent = parent
 		self.hasZProbe = self.parent.hasZProbe
+		self.useM205Q = self.parent.useM205Q
+		print("fwdlg: printer %s: Probe: %s Q: %s" % (pname, str(self.hasZProbe), str(self.useM205Q)))
+
+		self.grpinfo = copy.deepcopy(grpinfo)
+
+		for k in self.grpinfo.keys():
+			if k == 'm205' and self.useM205Q:
+				newmap = ['q' if c == 'b' else c for c in self.grpinfo[k][2]]
+				self.grpinfo[k][2] = newmap
+
 		self.server = server
-		self.eeprom = FwSettings(self.hasZProbe)
+		self.eeprom = FwSettings(self.hasZProbe, self.useM205Q)
 		self.flash = flash
-		self.working = FwSettings(self.hasZProbe)
+		self.working = FwSettings(self.hasZProbe, self.useM205Q)
 		self.printerName = pname
 		self.exitDlg = cbexit
 		self.settings = self.parent.settings
 
 		self.eepromFileName = "eeprom.%s.marlin" % pname
-		rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom)
+		rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
 		self.parent.logMessage(msg)
 
 		self.sizer = wx.GridBagSizer()
@@ -158,7 +169,7 @@ class FirmwareDlg(wx.Frame):
 			if not self.hasZProbe and g in zprobekeys:
 				continue
 			
-			item = grpinfo[g]
+			item = self.grpinfo[g]
 				
 			t = TextBox(self, item[0])
 			self.sizer.Add(t, pos=(row, 1), span=(item[1], 1), flag=wx.EXPAND)
@@ -285,7 +296,7 @@ class FirmwareDlg(wx.Frame):
 		
 		cmd = gk.upper()
 		nterms = 0
-		item = grpinfo[gk]
+		item = self.grpinfo[gk]
 		for gi in item[2]:
 			ik = gk + '_' + gi
 
@@ -302,21 +313,21 @@ class FirmwareDlg(wx.Frame):
 		if nterms != 0:
 			self.server.command(cmd)
 
-	def onCopyAllToFlash(self, evt):
+	def onCopyAllToFlash(self, _):
 		for g in grporder:
 			self.sendGroupToFlash(g)
 
-	def onCopyFlashToEEProm(self, evt):
+	def onCopyFlashToEEProm(self, _):
 		self.server.command("M500")
 		for i in self.itemMap.keys():
 			v = self.itemMap[i][1].getText()
 			self.itemMap[i][2].setText(v)
 			self.eeprom.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom)
+		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
 		self.parent.logMessage(msg)
 
-	def onCopyEEPromToFlash(self, evt):
+	def onCopyEEPromToFlash(self, _):
 		self.enableButtons(False)
 		self.server.command("M501")
 		self.parent.startFwCollection(self.eeprom, self.resumeAfterFwCollection)
@@ -328,17 +339,17 @@ class FirmwareDlg(wx.Frame):
 			self.itemMap[i][1].setText(v)
 			self.flash.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom)
+		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo)
 		self.parent.logMessage(msg)
 		self.enableButtons(True)
 
-	def onCopyFlashToWork(self, evt):
+	def onCopyFlashToWork(self, _):
 		for i in self.itemMap.keys():
 			v = self.itemMap[i][1].getText()
 			self.itemMap[i][0].SetValue(v)
 			self.working.setValue(i, v)
 
-	def onLoadProf(self, event):
+	def onLoadProf(self, _):
 		dlg = wx.FileDialog(
 			self, message="Choose a firmware file",
 			defaultDir=self.settings.getSetting("lastFwDirectory", dftValue="."),
@@ -352,7 +363,7 @@ class FirmwareDlg(wx.Frame):
 			dpath = os.path.dirname(path)
 			self.settings.setSetting("lastFwDirectory", dpath)
 
-			rc, msg = getFirmwareProfile(path, self.working)
+			rc, msg = getFirmwareProfile(path, self.working, self.grpinfo)
 			if rc:
 				for k in self.itemMap.keys():
 					wVal = self.itemMap[k][0]
@@ -363,7 +374,7 @@ class FirmwareDlg(wx.Frame):
 
 		dlg.Destroy()
 
-	def onSaveProf(self, event):
+	def onSaveProf(self, _):
 		dlg = wx.FileDialog(
 			self, message="Save firmware profile as...",
 			defaultDir=self.settings.getSetting("lastFwDirectory", dftValue="."),
@@ -386,10 +397,10 @@ class FirmwareDlg(wx.Frame):
 		if ext == "":
 			path += ".fw"
 
-		rc, msg = putFirmwareProfile(path, self.working)
+		rc, msg = putFirmwareProfile(path, self.working, self.grpinfo)
 		self.parent.logMessage(msg)
 
-	def onClose(self, event):
+	def onClose(self, _):
 		self.exitDlg()
 
 

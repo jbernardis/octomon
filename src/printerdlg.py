@@ -20,7 +20,7 @@ from gcode import GCode
 from gcodedlg import GCodeDlg
 from termdlg import TerminalDlg
 from firmwaremarlin import FirmwareDlg
-from fwsettings import FwSettings, FWC
+from fwsettings import FwSettings, FwCollector
 from settings import XCOUNT
 from connectdlg import ConnectDlg
 from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
@@ -83,8 +83,9 @@ class PrinterDlg(wx.Frame):
 		self.GCode = None
 
 		self.hasZProbe = self.settings.getSetting("haszprobe", pname, False)
-		self.flash = FwSettings(self.hasZProbe)
-		self.collectingFw = False
+		self.useM205Q = self.settings.getSetting("usem205q", pname, False)
+		print("printer %s: Probe: %s Q: %s" % (pname, str(self.hasZProbe), str(self.useM205Q)))
+		self.flash = FwSettings(self.hasZProbe, self.useM205Q)
 
 		self.fileDlg = None
 		self.tempGraph = None
@@ -94,7 +95,8 @@ class PrinterDlg(wx.Frame):
 		self.fwc = None
 		self.msgTimer = 0
 		self.timesdlg = None
-		
+		self.collCompleteCB = None
+
 		self.toRead = 0
 
 		self.xySpeed = self.settings.getSetting("xySpeed", pname, 300)
@@ -610,13 +612,13 @@ class PrinterDlg(wx.Frame):
 							   "state": self.stateUpdate,
 							   "plugin": self.pluginUpdate})
 
-	def MenuFileList(self, evt):
+	def MenuFileList(self, _):
 		if self.fileDlg is None:
 			self.fileDlg = FileDlg(self, self.server, self.pname, self.dismissFileDlg)
 		else:
 			self.fileDlg.Raise()
 
-	def MenuFileUpload(self, evt):
+	def MenuFileUpload(self, _):
 		wildcard = "GCode (*.gcode)|*.gcode;*.GCODE|" \
 				   "All files (*.*)|*.*"
 
@@ -667,7 +669,7 @@ class PrinterDlg(wx.Frame):
 				dlg.ShowModal()
 				dlg.Destroy()
 				
-	def MenuFileUpdate(self, evt):
+	def MenuFileUpdate(self, _):
 		pi = self.server.getPlugin("softwareupdate")
 		rc, rv = pi.get("check")
 		if rc < 400:
@@ -705,7 +707,7 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def MenuViewTemps(self, evt):
+	def MenuViewTemps(self, _):
 		if self.tempGraph is None:
 			self.tempGraph = TempGraph(self, self.pname, self.settings, self.images, self.tempHistory, self.nextData, self.exitTempDlg)
 		self.tempGraph.Show()
@@ -714,7 +716,7 @@ class PrinterDlg(wx.Frame):
 		self.tempGraph.Destroy()
 		self.tempGraph = None
 
-	def MenuViewGCode(self, evt):
+	def MenuViewGCode(self, _):
 		if self.selectedFilePath is None:
 			self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
 		else:
@@ -746,7 +748,7 @@ class PrinterDlg(wx.Frame):
 		self.gcdlg = None
 		self.GCode = None
 
-	def MenuViewTerminal(self, evt):
+	def MenuViewTerminal(self, _):
 		self.termdlg = TerminalDlg(self, self.server, self.pname, self.settings, self.images, self.exitTermDlg)
 		self.termdlg.Show()
 
@@ -754,13 +756,13 @@ class PrinterDlg(wx.Frame):
 		self.termdlg.Destroy()
 		self.termdlg = None
 
-	def MenuToolsFirmware(self, evt):
+	def MenuToolsFirmware(self, _):
 		self.startFwCollection(self.flash, self.haveAllSettings)
 
 	def startFwCollection(self, container, callback):
-		self.collectingFw = True
 		self.collCompleteCB = callback
-		FWC.start(container, self.hasZProbe)
+		self.fwc = FwCollector(self.hasZProbe, self.useM205Q)
+		self.fwc.start(container)
 		self.server.command("M503")
 
 	def haveAllSettings(self):
@@ -771,7 +773,7 @@ class PrinterDlg(wx.Frame):
 		self.fwdlg.Destroy()
 		self.fwdlg = None
 				
-	def MenuCameraView(self, evt):
+	def MenuCameraView(self, _):
 		player = self.settings.getSetting("videoPlayer", dftValue="ffplay")
 		options = self.settings.getSetting("videoPlayerOptions", self.pname, dftValue=["-vf", "hflip,vflip"])
 		uri = self.settings.getSetting("webcamUri", dftValue="webcam/?action=stream")
@@ -788,7 +790,7 @@ class PrinterDlg(wx.Frame):
 			si.wShowWindow = subprocess.SW_HIDE
 			self.pWebcam = subprocess.Popen(cmdList, stderr=subprocess.DEVNULL, startupinfo=si)
 		
-	def MenuConnect(self, evt):
+	def MenuConnect(self, _):
 		dftPort = self.settings.getSetting("port", self.pname, "/dev/ttyACM0")
 		dftBaudrate = self.settings.getSetting("baudrate", self.pname, 115200)
 		
@@ -832,10 +834,10 @@ class PrinterDlg(wx.Frame):
 			
 		self.server.connect(port=port, baudrate=baudrate)
 		
-	def MenuDisconnect(self, evt):
+	def MenuDisconnect(self, _):
 		self.server.disconnect()
 		
-	def MenuCameraOctolapse(self, evt):
+	def MenuCameraOctolapse(self, _):
 		pi = self.server.getPlugin("octolapse")
 		rc, rv = pi.post("loadSettings")
 		if rv is None or rc >= 400:
@@ -920,7 +922,7 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def MenuToolsTimes(self, evt):		
+	def MenuToolsTimes(self, _):
 		if self.timesdlg is None:
 			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg, self.refreshTimes)
 
@@ -965,11 +967,6 @@ class PrinterDlg(wx.Frame):
 				except ValueError:
 					msg = "Unable to parse layer number from Octoprint ({})\nUsing layer 0".format(lil[0])
 					lx = 0
-				try:
-					ln = int(lil[1])
-				except ValueError:
-					ln = len(lt)
-					msg = "Unable to parse layer count from Octoprint ({})\nUsing count {}".format(lil[1], ln)
 
 		if msg is not None:
 			self.logMessage(msg)
@@ -1148,7 +1145,7 @@ class PrinterDlg(wx.Frame):
 			self.bCancel.Enable(False)
 			self.bPreheat.Enable(False)
 
-	def onBPrint(self, evt):
+	def onBPrint(self, _):
 		if self.printerState == "Paused":
 			self.bPrint.SetBitmap(self.images.pngPrint)
 			try:
@@ -1167,7 +1164,7 @@ class PrinterDlg(wx.Frame):
 				dlg.ShowModal()
 				dlg.Destroy()
 
-	def onBPause(self, evt):
+	def onBPause(self, _):
 		if self.printerState == "Paused":
 			self.bPrint.SetBitmap(self.images.pngPrint)
 			try:
@@ -1187,7 +1184,7 @@ class PrinterDlg(wx.Frame):
 				dlg.ShowModal()
 				dlg.Destroy()
 
-	def onBCancel(self, evt):
+	def onBCancel(self, _):
 		self.bPrint.SetBitmap(self.images.pngPrint)
 		try:
 			self.server.job.cancel()
@@ -1197,7 +1194,7 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def onBPreheat(self, evt):
+	def onBPreheat(self, _):
 		if self.doPreheat:
 			try:
 				self.server.job.preheat()
@@ -1231,7 +1228,7 @@ class PrinterDlg(wx.Frame):
 	def stopTimer(self):
 		self.timer.Stop()
 
-	def OnTimer(self, evt):
+	def OnTimer(self, _):
 		if self.msgTimer > 0:
 			self.msgTimer -= 1
 			if self.msgTimer == 0:
@@ -1501,14 +1498,14 @@ class PrinterDlg(wx.Frame):
 		for l in logs:
 			evt = TerminalEvent(message=l)
 			wx.PostEvent(self, evt)
-			if l.startswith(pfx) and self.collectingFw:
-				FWC.checkFwCommand(l[len(pfx):])
-				if FWC.collectionComplete():
-					self.collectingFw = False
+			if l.startswith(pfx) and self.fwc:
+				self.fwc.checkFwCommand(l[len(pfx):])
+				if self.fwc.collectionComplete():
+					self.fwc = None
 					evt = FirmwareEvent(completed=True)
 					wx.PostEvent(self, evt)
 
-	def evtAllSettings(self, evt):
+	def evtAllSettings(self, _):
 		cb = self.collCompleteCB
 		self.collCompleteCB = None
 		cb()
@@ -1653,25 +1650,25 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def onScEDist(self, evt):
+	def onScEDist(self, _):
 		dist = self.scEDist.GetValue()
 		if dist != self.eLength:
 			self.eLength = dist
 			self.settings.setSetting("eLength", str(dist), self.pname)
 
-	def onScXYSpeed(self, evt):
+	def onScXYSpeed(self, _):
 		spd = self.scXYSpeed.GetValue()
 		if spd != self.xySpeed:
 			self.xySpeed = spd
 			self.settings.setSetting("xySpeed", str(spd), self.pname)
 
-	def onScZSpeed(self, evt):
+	def onScZSpeed(self, _):
 		spd = self.scZSpeed.GetValue()
 		if spd != self.zSpeed:
 			self.zSpeed = spd
 			self.settings.setSetting("zSpeed", str(spd), self.pname)
 
-	def onChTools(self, evt):
+	def onChTools(self, _):
 		s = evt.GetSelection()
 		if s == wx.NOT_FOUND:
 			return
@@ -1680,14 +1677,14 @@ class PrinterDlg(wx.Frame):
 			self.currentTool = s
 			self.server.tool.select(s)
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.killDialog()
 
 	def killDialog(self):
 		self.sever()
 		self.parent.connectionSevered(self.pname)
 
-	def onCbColdExt(self, evt):
+	def onCbColdExt(self, _):
 		if self.cbColdExt.GetValue():
 			self.logMessage("Cold Extrusion Enabled", -1)
 			try:

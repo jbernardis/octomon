@@ -3,8 +3,6 @@ import requests
 import os
 import io
 
-import pprint
-
 from opclient import Client
 
 TIMEOUT = 0.3
@@ -69,8 +67,6 @@ class PrintHead:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
-
-
 
 class Tool:
 	def __init__(self, printer):
@@ -479,7 +475,14 @@ class PrinterServer:
 		self.plugins = {}
 		self.opClient = Client("http://%s" % self.ipAddr, self.apiKey)
 		self.opSocket = None
-		
+
+		self.jobUpdate = None
+		self.messageUpdate = None
+		self.logUpdate = None
+		self.progressUpdate = None
+		self.stateUpdate = None
+		self.pluginUpdate = None
+
 	def addPlugin(self, pname):
 		self.plugins[pname] = Plugin(self, pname)
 		
@@ -550,8 +553,6 @@ class PrinterServer:
 
 		if mtype != "current":
 			return
-
-		#pprint.pprint(mbody)
 
 		if callable(self.messageUpdate):
 			try:
@@ -652,7 +653,6 @@ class PrinterServer:
 			return RC_READ_TIMEOUT
 		except requests.exceptions.ConnectTimeout:
 			return RC_CONNECT_TIMEOUT
-	
 
 	def close(self):
 		self.unsubscribe()

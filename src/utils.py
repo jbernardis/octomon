@@ -30,7 +30,7 @@ def approximateValue(n):
 	if n <= 10240:
 		return "%d" % n
 
-	if n <= (1048576):
+	if n <= 1048576:
 		return "{:,.2f}".format(n / 1024.0) + " K"
 
-	return '{:,.2f}'.format(n / (1048576.0)) + " M"
+	return '{:,.2f}'.format(n / 1048576.0) + " M"

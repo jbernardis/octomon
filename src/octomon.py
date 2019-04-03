@@ -118,7 +118,7 @@ class MyFrame(wx.Frame):
 
 		self.Show()
 		
-	def onToolButton(self, evt, section, tool):
+	def onToolButton(self, _, section, tool):
 		self.tbx.execute(section, tool)
 
 	def enableButtons(self):
@@ -183,7 +183,7 @@ class MyFrame(wx.Frame):
 
 		self.enableButtons()
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		if self.destroyed:
 			return
 		

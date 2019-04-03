@@ -19,7 +19,6 @@ defaultTargetColors = {
     "tool0": (255, 0, 255),
     "tool1": (255, 255, 0)}
 
-
 class TempGraph(wx.Frame):
     def __init__(self, parent, pName, settings, images, history, cbNext, cbExit):
         wx.Frame.__init__(self, parent, -1, "%s Temperature Monitor" % pName)
@@ -167,7 +166,6 @@ class TempGraph(wx.Frame):
             szHtr.AddSpacer(5)
 
             h = wx.BoxSizer(wx.HORIZONTAL)
-            h = wx.BoxSizer(wx.HORIZONTAL)
             t = wx.StaticText(self.panel, wx.ID_ANY, "Target:", size=(60, -1))
             t.SetFont(self.lbFont)
             h.Add(t, 1, wx.TOP, 4)
@@ -255,12 +253,12 @@ class TempGraph(wx.Frame):
 
         self.canvas.draw()
 
-    def on_bPause(self, event):
+    def on_bPause(self, _):
         self.paused = not self.paused
         png = self.images.pngResume if self.paused else self.images.pngPause
         self.bPause.SetBitmap(png)
 
-    def on_cb_grid(self, event):
+    def on_cb_grid(self, _):
         self.draw_plot()
 
     def on_cb_actual(self, evt):
@@ -310,7 +308,7 @@ class TempGraph(wx.Frame):
         else:
             return None
 
-    def on_redraw_timer(self, event):
+    def on_redraw_timer(self, _):
         di = self.nextData()
         for k in self.heaters:
             self.teCurrentActual[k].SetValue("%.1f" % di[k]["actual"])
@@ -338,6 +336,6 @@ class TempGraph(wx.Frame):
     def close(self):
         self.redraw_timer.Stop()
 
-    def on_exit(self, event):
+    def on_exit(self, _):
         self.redraw_timer.Stop()
         self.exitDlg()

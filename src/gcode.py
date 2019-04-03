@@ -136,6 +136,16 @@ class GCLayer:
 	def getLayerTime(self):
 		return self.layerTime
 
+def get_float(paramStr, which, last, relativeValue=False):
+	try:
+		v = float(gcRegex.findall(paramStr.split(which)[1])[0])
+		if relativeValue:
+			return v+last
+		else:
+			return v
+	except ValueError:
+		return last
+
 class GCode:
 	def __init__(self, gc, acceleration, fDiameter, nExtr):
 		self.gcode = gc.split("\n")
@@ -297,19 +307,19 @@ class GCode:
 			if "E" in p[1]:
 				self.hasFilament = True
 
-			self.paramX = self._get_float(p[1], "X", self.lastX, self.relativeMove)
-			self.paramY = self._get_float(p[1], "Y", self.lastY, self.relativeMove)
-			self.paramZ = self._get_float(p[1], "Z", self.lastZ, self.relativeMove)
-			self.paramE = self._get_float(p[1], "E", self.lastE, self.relativeExtrude)
-			self.paramF = self._get_float(p[1], "F", self.lastF)
+			self.paramX = get_float(p[1], "X", self.lastX, self.relativeMove)
+			self.paramY = get_float(p[1], "Y", self.lastY, self.relativeMove)
+			self.paramZ = get_float(p[1], "Z", self.lastZ, self.relativeMove)
+			self.paramE = get_float(p[1], "E", self.lastE, self.relativeExtrude)
+			self.paramF = get_float(p[1], "F", self.lastF)
 
 		elif cmd == "G92":
-			self.paramX = self._get_float(p[1], "X", self.lastX)
-			self.paramY = self._get_float(p[1], "Y", self.lastY)
-			self.paramZ = self._get_float(p[1], "Z", self.lastZ)
-			self.paramF = self._get_float(p[1], "F", self.lastF)
+			self.paramX = get_float(p[1], "X", self.lastX)
+			self.paramY = get_float(p[1], "Y", self.lastY)
+			self.paramZ = get_float(p[1], "Z", self.lastZ)
+			self.paramF = get_float(p[1], "F", self.lastF)
 			if self.hasFilament:
-				self.paramE = self._get_float(p[1], "E", self.lastE)
+				self.paramE = get_float(p[1], "E", self.lastE)
 			else:
 				self.paramE = 0.0
 			self.resetFilament = True
@@ -348,13 +358,3 @@ class GCode:
 		else:
 			pass
 			# print ("Not processing command (%s) at offset %d" % (cmd, offset))
-
-	def _get_float(self, paramStr, which, last, relativeValue=False):
-		try:
-			v = float(gcRegex.findall(paramStr.split(which)[1])[0])
-			if relativeValue:
-				return v+last
-			else:
-				return v
-		except ValueError:
-			return last

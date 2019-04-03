@@ -32,10 +32,6 @@ class MyListener(object):
 
 class PrinterInstances:
 	def __init__(self, plist, settings, registerPrinter):
-		"""
-
-		:rtype:
-		"""
 		self.servers = {}
 		self.priorServers = {}
 		self.apiKeys = {}
@@ -44,6 +40,11 @@ class PrinterInstances:
 
 		self.registerPrinter = registerPrinter
 		self.zeroconf = None
+		self.newServers = {}
+		self.listener = None
+		self.browser = None
+		self.dtmr = None
+		self.tmr = None
 		self.refresh()
 
 	def refresh(self):
@@ -81,7 +82,7 @@ class PrinterInstances:
 	def getPrinterServer(self, pName):
 		try:
 			return self.servers[pName]
-		except:
+		except IndexError:
 			return None
 
 	def close(self):

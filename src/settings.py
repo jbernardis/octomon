@@ -8,7 +8,7 @@ XCOUNT = LOOKBACKMINUTES * 60
 
 
 def parseBoolean(val, defaultVal):
-	lval = val.lower();
+	lval = val.lower()
 
 	if lval == 'true' or lval == 't' or lval == 'yes' or lval == 'y':
 		return True
@@ -23,6 +23,7 @@ class Settings:
 	def __init__(self, folder):
 		self.cmdfolder = folder
 		self.inifile = os.path.join(folder, INIFILE)
+		self.cfg = None
 		self.reinit()
 
 	def reinit(self):

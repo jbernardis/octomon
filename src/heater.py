@@ -89,7 +89,7 @@ class Heater(wx.Window):
             self.bPower.SetBitmap(self.images.pngHeaton)
             # self.sc.SetValue(target)
 
-    def onBPower(self, evt):
+    def onBPower(self, _):
         nv = self.sc.GetValue()
         self.setHeater(nv)
 

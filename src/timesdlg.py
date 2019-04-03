@@ -178,8 +178,8 @@ class TimesDlg(wx.Frame):
 		
 		self.totalRemainCalc.SetLabel(formatElapsed(timeLeftCalc))
 	
-	def onRefresh(self, evt):
+	def onRefresh(self, _):
 		self.refreshDlg()
 	
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.exitDlg()

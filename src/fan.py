@@ -43,14 +43,14 @@ class Fan(wx.Window):
         self.bPowerOff.Enable(flag)
         self.bPower.Enable(flag)
 
-    def onBPowerOff(self, evt):
+    def onBPowerOff(self, _):
         self.slSpeed.SetValue(0)
         try:
             self.server.command("M106 S0")
         except:
             self.parent.askToSever("Unable to set fan power level")
 
-    def onBPower(self, evt):
+    def onBPower(self, _):
         try:
             self.server.command("M106 S%d" % self.slSpeed.GetValue())
         except:

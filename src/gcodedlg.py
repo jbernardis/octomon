@@ -131,7 +131,9 @@ class GCodeDlg(wx.Frame):
 		self.SetSizer(sz)
 		self.Fit()
 
-	def formatTitle(self, pname, filenm):
+	@staticmethod
+	def formatTitle(pname, filenm):
+
 		if filenm is None:
 			return "%s - GCode Monitor - (no file loaded)" % pname
 		else:
@@ -220,13 +222,13 @@ class GCodeDlg(wx.Frame):
 			
 		return sHt, sTm, sFi
 
-	def onSlLayer(self, evt):
+	def onSlLayer(self, _):
 		self.followPrintOff()
 		v = self.slLayer.GetValue()-1
 		self.gcf.setLayer(v)
 		self.showLayerInfo()
 
-	def onBUp(self, evt):
+	def onBUp(self, _):
 		v = self.slLayer.GetValue()
 		if v < self.gcode.layerCount():
 			self.followPrintOff()
@@ -235,7 +237,7 @@ class GCodeDlg(wx.Frame):
 			self.gcf.setLayer(v-1)
 			self.showLayerInfo()
 
-	def onBDown(self, evt):
+	def onBDown(self, _):
 		v = self.slLayer.GetValue()
 		if v > 1:
 			self.followPrintOff()
@@ -250,34 +252,34 @@ class GCodeDlg(wx.Frame):
 			self.followPrint = False
 			self.gcf.setFollowPrint(False)
 
-	def onCbSync(self, evt):
+	def onCbSync(self, _):
 		self.followPrint = self.cbSync.GetValue()
 		self.gcf.setFollowPrint(self.followPrint)
 
-	def onCbShowPrintedOnly(self, evt):
+	def onCbShowPrintedOnly(self, _):
 		v = self.cbPrintedOnly.GetValue()
 		self.settings.setSetting("showprintedonly", str(v), self.pname)
 		self.gcf.setShowPrintedOnly(v)
 
-	def onCbShowPrev(self, evt):
+	def onCbShowPrev(self, _):
 		v = self.cbShowPrev.GetValue()
 		self.settings.setSetting("showprevious", str(v), self.pname)
 		self.gcf.setShowPrevious(v)
 
-	def onCbShowMoves(self, evt):
+	def onCbShowMoves(self, _):
 		v = self.cbShowMoves.GetValue()
 		self.settings.setSetting("showmoves", str(v), self.pname)
 		self.gcf.setShowMoves(v)
 
-	def onCbShowRetr(self, evt):
+	def onCbShowRetr(self, _):
 		v = self.cbShowRetr.GetValue()
 		self.settings.setSetting("showretractions", str(v), self.pname)
 		self.gcf.setShowRetractions(v)
 
-	def onCbShowRevRetr(self, evt):
+	def onCbShowRevRetr(self, _):
 		v = self.cbShowRevRetr.GetValue()
 		self.settings.setSetting("showrevretractions", str(v), self.pname)
 		self.gcf.setShowRevRetractions(v)
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.exitDlg()

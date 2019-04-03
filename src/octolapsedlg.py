@@ -4,7 +4,6 @@ Created on May 4, 2018
 @author: Jeff
 """
 import wx
-import pprint
 
 BTNDIM = (48, 48)
 IPSIZE = (240, -1)
@@ -13,7 +12,7 @@ class OctolapseDlg(wx.Dialog):
 	def __init__(self, parent, pname, piserver, picfg):
 		try:
 			v = " (" + picfg["version"] + ")"
-		except:
+		except IndexError:
 			v = ""
 		wx.Dialog.__init__(self, None, wx.ID_ANY, "%s OctoLapse %s Configuration" % (pname, v))
 		self.SetBackgroundColour("white")
@@ -53,7 +52,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.printerGUIDList.index(self.currentPrinterGuid)
 			descr = self.printerDescList[v]
-		except:
+		except IndexError:
 			v = 0
 			descr = ""
 		
@@ -83,7 +82,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.renderingGUIDList.index(self.currentRenderingGuid)
 			descr = self.renderingDescList[v]
-		except:
+		except IndexError:
 			v = 0
 			descr = ""
 
@@ -113,7 +112,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.snapshotsGUIDList.index(self.currentSnapshotGuid)
 			descr = self.snapshotsDescList[v]
-		except:
+		except IndexError:
 			v = 0
 			descr = ""
 		
@@ -143,7 +142,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.stabilizationsGUIDList.index(self.currentStabilizationGuid)
 			descr = self.stabilizationsDescList[v]
-		except:
+		except IndexError:
 			v = 0
 			descr = ""
 		
@@ -222,7 +221,7 @@ class OctolapseDlg(wx.Dialog):
 		self.SetSizer(sz)
 		self.Fit()
 
-	def onChPrinters(self, evt):
+	def onChPrinters(self, _):
 		v = self.chPrinters.GetSelection()
 		if v == wx.NOT_FOUND:
 			return 
@@ -230,7 +229,7 @@ class OctolapseDlg(wx.Dialog):
 		self.stPrinters.SetLabel(self.printerDescList[v])
 		self.currentPrinterGuid = self.printerGUIDList[v]
 
-	def onChRenderings(self, evt):
+	def onChRenderings(self, _):
 		v = self.chRenderings.GetSelection()
 		if v == wx.NOT_FOUND:
 			return 
@@ -238,7 +237,7 @@ class OctolapseDlg(wx.Dialog):
 		self.stRenderings.SetLabel(self.renderingDescList[v])
 		self.currentRenderingGuid = self.renderingGUIDList[v]
 
-	def onChSnapshots(self, evt):
+	def onChSnapshots(self, _):
 		v = self.chSnapshots.GetSelection()
 		if v == wx.NOT_FOUND:
 			return 
@@ -246,7 +245,7 @@ class OctolapseDlg(wx.Dialog):
 		self.stSnapshots.SetLabel(self.snapshotsDescList[v])
 		self.currentSnapshotGuid = self.snapshotsGUIDList[v]
 
-	def onChStabilizations(self, evt):
+	def onChStabilizations(self, _):
 		v = self.chStabilizations.GetSelection()
 		if v == wx.NOT_FOUND:
 			return 
@@ -254,10 +253,10 @@ class OctolapseDlg(wx.Dialog):
 		self.stStabilizations.SetLabel(self.stabilizationsDescList[v])
 		self.currentStabilizationGuid = self.stabilizationsGUIDList[v]
 		
-	def onBOK(self, evt):
+	def onBOK(self, _):
 		self.EndModal(wx.ID_OK)
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		if self.hasAnythingChanged():
 			dlg = wx.MessageDialog(self, "Changes will be lost.  Exit anyway?",
 										   "Lose Changes?", wx.OK | wx.CANCEL | wx.ICON_WARNING)

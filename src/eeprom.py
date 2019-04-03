@@ -1,9 +1,4 @@
-'''
-Created on Jun 19, 2018
 
-@author: Jeff
-
-'''
 import re
 
 class M92(object):
@@ -14,8 +9,8 @@ class M92(object):
 		self.y = None
 		self.z = None
 		self.e = None
-		self.clearHasValues()
-		
+		self.hasValues = False
+
 	def __repr__(self):
 		return "M92 X(%f) Y(%f) Z(%f) E(%f)" % (self.x, self.y, self.z, self.e)
 		
@@ -37,8 +32,8 @@ class M201(object):
 		self.y = None
 		self.z = None
 		self.e = None
-		self.clearHasValues()
-		
+		self.hasValues = False
+
 	def __repr__(self):
 		return "M201 X(%f) Y(%f) Z(%f) E(%f)" % (self.x, self.y, self.z, self.e)
 		
@@ -60,8 +55,8 @@ class M203(object):
 		self.y = None
 		self.z = None
 		self.e = None
-		self.clearHasValues()
-		
+		self.hasValues = False
+
 	def __repr__(self):
 		return "M203 X(%f) Y(%f) Z(%f) E(%f)" % (self.x, self.y, self.z, self.e)
 		
@@ -82,7 +77,7 @@ class M204(object):
 		self.p = None
 		self.r = None
 		self.t = None
-		self.clearHasValues()
+		self.hasValues = False
 		
 	def __repr__(self):
 		return "M204 P(%f) R(%f) T(%f)" % (self.p, self.r, self.t)
@@ -106,7 +101,7 @@ class M205(object):
 		self.x = None
 		self.z = None
 		self.e = None
-		self.clearHasValues()
+		self.hasValues = False
 		
 	def __repr__(self):
 		return "M205 S(%f) T(%f) B(%f) X(%f) Z(%f) E(%f)" % (self.s, self.t, self.b, self.x, self.z, self.e)
@@ -132,7 +127,7 @@ class M301(object):
 		self.d = None
 		self.c = None
 		self.l = None
-		self.clearHasValues()
+		self.hasValues = False
 		
 	def __repr__(self):
 		return "M301 P(%f) I(%f) D(%f) C(%f) L(%f)" % (self.p, self.i, self.d, self.c, self.l)
@@ -149,7 +144,14 @@ class M301(object):
 		self.hasValues = True
 
 gcRegex = re.compile("[-]?\d+[.]?\d*")
-		
+
+def get_float(paramStr, which):
+	try:
+		v = float(gcRegex.findall(paramStr.split(which)[1])[0])
+		return v
+	except ValueError:
+		return None
+
 class EEProm(object):
 	def __init__(self):
 		self.cb = None
@@ -184,68 +186,61 @@ class EEProm(object):
 			callback()
 
 	def hasAllValues(self):
-		return (self.m92.hasValues and self.m203.hasValues and self.m201.hasValues and self.m204.hasValues and self.m205.hasValues and self.m301.hasValues)
+		return self.m92.hasValues and self.m203.hasValues and self.m201.hasValues and self.m204.hasValues and self.m205.hasValues and self.m301.hasValues
 		
 	def parseM92(self, gl):
-		x = self.__get_float(gl, "X")
-		y = self.__get_float(gl, "Y")
-		z = self.__get_float(gl, "Z")
-		e = self.__get_float(gl, "E")
+		x = get_float(gl, "X")
+		y = get_float(gl, "Y")
+		z = get_float(gl, "Z")
+		e = get_float(gl, "E")
 		self.m92.setStepsPerUnit(x, y, z, e)
 		self.checkCallBack()
 		
 	def parseM203(self, gl):
-		x = self.__get_float(gl, "X")
-		y = self.__get_float(gl, "Y")
-		z = self.__get_float(gl, "Z")
-		e = self.__get_float(gl, "E")
+		x = get_float(gl, "X")
+		y = get_float(gl, "Y")
+		z = get_float(gl, "Z")
+		e = get_float(gl, "E")
 		self.m203.setMaxFeedRates(x, y, z, e)
 		self.checkCallBack()
 		
 	def parseM201(self, gl):
-		x = self.__get_float(gl, "X")
-		y = self.__get_float(gl, "Y")
-		z = self.__get_float(gl, "Z")
-		e = self.__get_float(gl, "E")
+		x = get_float(gl, "X")
+		y = get_float(gl, "Y")
+		z = get_float(gl, "Z")
+		e = get_float(gl, "E")
 		self.m201.setMaxAccel(x, y, z, e)
 		self.checkCallBack()
 		
 	def parseM204(self, gl):
-		p = self.__get_float(gl, "P")
-		r = self.__get_float(gl, "R")
-		t = self.__get_float(gl, "T")
+		p = get_float(gl, "P")
+		r = get_float(gl, "R")
+		t = get_float(gl, "T")
 		self.m204.setAcceleration(p, r, t)
 		self.checkCallBack()
 		
 	def parseM205(self, gl):
-		s = self.__get_float(gl, "S")
-		t = self.__get_float(gl, "T")
-		b = self.__get_float(gl, "B")
-		x = self.__get_float(gl, "X")
-		z = self.__get_float(gl, "Z")
-		e = self.__get_float(gl, "E")
+		s = get_float(gl, "S")
+		t = get_float(gl, "T")
+		b = get_float(gl, "B")
+		x = get_float(gl, "X")
+		z = get_float(gl, "Z")
+		e = get_float(gl, "E")
 		self.m205.setValues(s, t, b, x, z, e)
 		self.checkCallBack()
 		
 	def parseM301(self, gl):
-		p = self.__get_float(gl, "P")
-		i = self.__get_float(gl, "I")
-		d = self.__get_float(gl, "D")
-		c = self.__get_float(gl, "C")
-		l = self.__get_float(gl, "L")
+		p = get_float(gl, "P")
+		i = get_float(gl, "I")
+		d = get_float(gl, "D")
+		c = get_float(gl, "C")
+		l = get_float(gl, "L")
 		self.m301.setPID(p, i, d, c, l)
 		try:
 			self.checkCallBack()
 		except Exception as e:
 			print ("exception (%s)" % str(e))
 		
-	def __get_float(self, paramStr, which):
-		
-		try:
-			v = float(gcRegex.findall(paramStr.split(which)[1])[0])
-			return v
-		except:
-			return None
 
 
 

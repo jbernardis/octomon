@@ -71,15 +71,15 @@ class UploadDestinationDlg(wx.Dialog):
 
         return fn
 
-    def onChoice(self, evt):
+    def onChoice(self, _):
         idx = self.ch.GetSelection()
         if idx == wx.NOT_FOUND or idx == 0:
             self.entry.SetValue(self.fn)
         else:
             self.entry.SetValue(self.ch.GetString(idx))
 
-    def onOk(self, evt):
+    def onOk(self, _):
         self.EndModal(wx.ID_OK)
 
-    def onCancel(self, evt):
+    def onCancel(self, _):
         self.EndModal(wx.ID_CANCEL)

@@ -4,8 +4,6 @@ import os
 import subprocess
 import shlex
 
-import pprint
-
 INIFILE = "tools.ini"
 
 class ToolBox:
@@ -42,12 +40,9 @@ class ToolBox:
 		return self.json
 	
 	def execute(self, section, tool):
-		print("executing tool ({}) from section ({})".format(tool, section))
 		args = shlex.split(self.json[section][tool]["command"])
-		pprint.pprint(args)
 		shell = self.json[section][tool]["needsshell"]
 		try:
-			#subprocess.Popen(args, shell=shell, stdin=None, stdout=None, stderr=None, close_fds=True)
 			subprocess.Popen(args, shell=shell)
 		except:
 			print("Exception occurred trying to spawn tool process ({}):({})".format(section, tool))

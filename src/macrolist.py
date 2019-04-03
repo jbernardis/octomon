@@ -107,7 +107,7 @@ class MacroList:
         """
         try:
             return self.macroList[name]
-        except:
+        except IndexError:
             return None
 
     def getOrderedList(self):

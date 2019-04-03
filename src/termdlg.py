@@ -176,16 +176,16 @@ class TerminalDlg(wx.Frame):
 		for l in ls:
 			self.logLine(l)
 
-	def onCbPause(self, evt):
+	def onCbPause(self, _):
 		self.paused = self.cbPause.GetValue()
 
-	def onBClear(self, evt):
+	def onBClear(self, _):
 		self.tcLog.Clear()
 
-	def onBErase(self, evt):
+	def onBErase(self, _):
 		self.tcMan.Clear()
 
-	def onBSend(self, evt):
+	def onBSend(self, _):
 		cmd = self.tcMan.GetValue()
 		if self.forceUpper:
 			cmd = cmd.upper()
@@ -197,27 +197,27 @@ class TerminalDlg(wx.Frame):
 		except:
 			self.exitDlg()
 
-	def onCbSuppressTempRpt(self, evt):
+	def onCbSuppressTempRpt(self, _):
 		self.suppressTempRpt = self.cbSuppressTempRpt.GetValue()
 		self.settings.setSetting("suppresstemprpt", str(self.suppressTempRpt), self.pname)
 		
-	def onCbSuppressTempProbe(self, evt):
+	def onCbSuppressTempProbe(self, _):
 		self.suppressTempProbe = self.cbSuppressTempProbe.GetValue()
 		self.settings.setSetting("suppresstempprobe", str(self.suppressTempProbe), self.pname)
 		
-	def onCbSuppressBusy(self, evt):
+	def onCbSuppressBusy(self, _):
 		self.suppressBusy = self.cbSuppressBusy.GetValue()
 		self.settings.setSetting("suppressbusy", str(self.suppressBusy), self.pname)
 
-	def onCbAutoClear(self, evt):
+	def onCbAutoClear(self, _):
 		self.autoClear = self.cbAutoClear.GetValue()
 		self.settings.setSetting("autoclear", str(self.autoClear), self.pname)
 
-	def onCbForceUpper(self, evt):
+	def onCbForceUpper(self, _):
 		self.forceUpper = self.cbForceUpper.GetValue()
 		self.settings.setSetting("forceupper", str(self.forceUpper), self.pname)
 
-	def onBSave(self, evt):
+	def onBSave(self, _):
 		wildcard = "Log File |*.log;*.LOG"
 		dlg = wx.FileDialog(
 			self, message="Save as ...",
@@ -249,5 +249,5 @@ class TerminalDlg(wx.Frame):
 		for mc in mcl:
 			self.server.command(mc)
 
-	def onClose(self, evt):
+	def onClose(self, _):
 		self.exitDlg()
