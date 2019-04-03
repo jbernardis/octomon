@@ -60,7 +60,9 @@ def get_float(paramStr, which):
 	try:
 		v = float(gcRegex.findall(paramStr.split(which)[1])[0])
 		return v
-	except:
+	except ValueError:
+		return None
+	except IndexError:
 		return None
 
 class FwSettings(object):

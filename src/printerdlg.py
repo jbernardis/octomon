@@ -674,8 +674,7 @@ class PrinterDlg(wx.Frame):
 			octoMessage = ""
 			for p in sorted(piList):
 				if piList[p]["updateAvailable"]:
-					#pprint.pprint(piList[p])
-					if p == "octoprint":						
+					if p == "octoprint":
 						octoMessage = "%s  %s  =>  %s" % (piList[p]["displayName"], piList[p]["information"]["local"]["value"], piList[p]["information"]["remote"]["value"])
 					else:
 						updateMessage.append("%s  %s  =>  %s" % (piList[p]["displayName"], piList[p]["information"]["local"]["value"], piList[p]["information"]["remote"]["value"]))

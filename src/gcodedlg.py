@@ -11,7 +11,6 @@ BTNDIM = (32, 32) if os.name == 'posix' else (16, 16)
 
 from gcframe import GcFrame
 
-
 class GCodeDlg(wx.Frame):
 	def __init__(self, parent, server, gcode, filenm, pname, settings, images, cbexit):
 		wx.Frame.__init__(self, None, wx.ID_ANY, self.formatTitle(pname, filenm))

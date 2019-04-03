@@ -151,6 +151,9 @@ def get_float(paramStr, which):
 		return v
 	except ValueError:
 		return None
+	except IndexError:
+		return None
+
 
 class EEProm(object):
 	def __init__(self):

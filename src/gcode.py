@@ -15,7 +15,7 @@ def calcFilamentVolume(flen, fdiam):
 
 class GCMove:
 	def __init__(self, x, y, z, e, f, mtype, offset):
-		# print ("Movement type {:d} to coordinate {:f},{:f}, offset = {:d}".format(mtype, x, y, offset))
+		# print ("Movement type {:s} to coordinate {:f},{:f}, offset = {:d}".format(mtype, x, y, offset))
 		self.x = x
 		self.y = y
 		self.z = z
@@ -144,6 +144,8 @@ def get_float(paramStr, which, last, relativeValue=False):
 		else:
 			return v
 	except ValueError:
+		return last
+	except IndexError:
 		return last
 
 class GCode:

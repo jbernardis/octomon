@@ -74,7 +74,7 @@ class GcFrame (wx.Window):
 		self.Bind(wx.EVT_MOTION, self.onMotion)
 		self.Bind(wx.EVT_MOUSEWHEEL, self.onMouseWheel, self)
 
-		if gcode is None:
+		if gcode is not None:
 			self.loadGCode(gcode)
 
 	def setPenMap(self):
