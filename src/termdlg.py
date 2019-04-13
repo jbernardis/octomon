@@ -169,8 +169,10 @@ class TerminalDlg(wx.Frame):
 
 		if len(t) > LOGLIMIT:
 			t = t[-LOGLIMIT:]
-			self.tcLog.SetValue("\n".join(t))
+			txt = "\n".join(t)
+			self.tcLog.SetValue(txt)
 			self.tcLog.SetInsertionPointEnd()
+			self.tcLog.ShowPosition(len(txt)-1)
 
 	def logLines(self, ls):
 		for l in ls:

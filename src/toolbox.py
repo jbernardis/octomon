@@ -11,11 +11,10 @@ class ToolBox:
 		inifile = os.path.join(folder, INIFILE)
 		cfg = configparser.ConfigParser()
 		cfg.optionxform = str
-		if not cfg.read(inifile):
-			print("Settings file %s does not exist." % INIFILE)
-			
 		self.json = {}
-		
+		if not cfg.read(inifile):
+			return
+
 		for section in cfg.sections():
 			self.json[section] = {}
 			for (k, v) in cfg.items(section):
@@ -34,16 +33,17 @@ class ToolBox:
 					elif len(tl) == 2:
 						self.json[section][k] = {"command": tl[0], "icon": tl[1], "helptext": "", "needsshell": False}
 					else:
-						print("Unable to parse tool: {}/{}".format(section, k))
+						pass
 
-	def getTools(self):	
+	def getTools(self):
 		return self.json
-	
+
 	def execute(self, section, tool):
 		args = shlex.split(self.json[section][tool]["command"])
 		shell = self.json[section][tool]["needsshell"]
 		try:
 			subprocess.Popen(args, shell=shell)
 		except:
-			print("Exception occurred trying to spawn tool process ({}):({})".format(section, tool))
+			pass
+
 		return

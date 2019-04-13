@@ -155,6 +155,13 @@ class FileDlg(wx.Frame):
 			dlg.Destroy()
 			return {}
 
+		if fl is None:
+			dlg = wx.MessageDialog(self.parent, "Unable to get file listing from printer",
+								   "Printer Error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			return {}
+
 		fmap = {}
 		for origin, ofl in fl.items():
 			fmap[origin] = []

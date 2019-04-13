@@ -646,7 +646,7 @@ class PrinterDlg(wx.Frame):
 		if rc == wx.ID_OK:
 			gcode = self.loadGCode(path)
 			try:
-				rc = self.server.gfile.uploadString("".join(gcode), fn, to=5)[0]
+				rc = self.server.gfile.uploadString("".join(gcode), fn, to=20)[0]
 			except:
 				dlg = wx.MessageDialog(self, "Unable to upload G Code file to printer",
 									   "Upload Error", wx.OK | wx.ICON_ERROR)
@@ -715,7 +715,7 @@ class PrinterDlg(wx.Frame):
 			self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
 		else:
 			try:
-				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=5)
+				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=20)
 			except:
 				dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.",
 						"Retrieve Error", wx.OK | wx.ICON_ERROR)
@@ -1251,6 +1251,8 @@ class PrinterDlg(wx.Frame):
 					temps = json["temperature"]
 					updateTemps = True	
 				except KeyError:
+					pass
+				except TypeError:
 					pass
 
 		nzct = 0
