@@ -93,6 +93,7 @@ class PrinterDlg(wx.Frame):
 		self.msgTimer = 0
 		self.timesdlg = None
 		self.collCompleteCB = None
+		self.printLayer = 0
 
 		self.toRead = 0
 
@@ -711,31 +712,35 @@ class PrinterDlg(wx.Frame):
 		self.tempGraph = None
 
 	def MenuViewGCode(self, _):
-		if self.selectedFilePath is None:
-			self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
+		if self.gcdlg is not None:
+			self.gcdlg.Show()
+			self.gcdlg.Raise()
 		else:
-			try:
-				rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=20)
-			except:
-				dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.",
-						"Retrieve Error", wx.OK | wx.ICON_ERROR)
-				dlg.ShowModal()
-				dlg.Destroy()
-				self.GCode = None
-				return
-
-			if rc < 400:
-				self.GCode = GCode(gc, self.acceleration, self.filamentDiameter, self.nExtr)
+			if self.selectedFilePath is None:
+				self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
 			else:
-				dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.  Error = %d" % rc,
-						"Retrieve Error", wx.OK | wx.ICON_ERROR)
-				dlg.ShowModal()
-				dlg.Destroy()
-				self.GCode = None
-				return
+				try:
+					rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=20)
+				except:
+					dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.",
+							"Retrieve Error", wx.OK | wx.ICON_ERROR)
+					dlg.ShowModal()
+					dlg.Destroy()
+					self.GCode = None
+					return
 
-		self.gcdlg = GCodeDlg(self, self.server, self.GCode, self.selectedFilePath, self.pname, self.settings, self.images, self.exitGCDlg)
-		self.gcdlg.Show()
+				if rc < 400:
+					self.GCode = GCode(gc, self.acceleration, self.filamentDiameter, self.nExtr)
+				else:
+					dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.  Error = %d" % rc,
+							"Retrieve Error", wx.OK | wx.ICON_ERROR)
+					dlg.ShowModal()
+					dlg.Destroy()
+					self.GCode = None
+					return
+
+			self.gcdlg = GCodeDlg(self, self.server, self.GCode, self.selectedFilePath, self.pname, self.settings, self.images, self.exitGCDlg)
+			self.gcdlg.Show()
 
 	def exitGCDlg(self):
 		self.gcdlg.Destroy()
@@ -942,37 +947,12 @@ class PrinterDlg(wx.Frame):
 		ept = self.estimatedPrintTime		
 		pt = self.printTime
 		ptl = self.printTimeLeft
-		
-		li = self.layerInfo
-		msg = None
-		if li is None:
-			lx = 0
-			ln = len(lt)
-			msg = "Octoprint has provided no layer information.\nAssuming layer 0 of {}".format(ln)
-		else:
-			lil = li.split(" / ")
-			if len(lil) != 2:
-				lx = 0
-				ln = len(lt)
-				msg = "Unable to parse layer info provided by Octoprint ({})\nAssuming layer {} of {}".format(li, lx, ln)
-			else:
-				try:
-					lx = int(lil[0])
-				except ValueError:
-					msg = "Unable to parse layer number from Octoprint ({})\nUsing layer 0".format(lil[0])
-					lx = 0
 
-		if msg is not None:
-			self.logMessage(msg)
-			
-		pl = sum([lt[x] for x in range(len(lt)) if x < lx])
-		rl = sum([lt[x] for x in range(len(lt)) if x > lx])
-		
-		try:
-			clt = lt[lx]
-		except IndexError:
-			clt = None
-			
+		pl = sum(lt[:self.printLayer])
+		rl = sum(lt[self.printLayer+1:])
+
+		clt = lt[self.printLayer]
+
 		self.timesdlg.updateTimes(tt, ept, pt, pl, clt, rl, ptl)
 		self.timesdlg.Show()
 		self.timesdlg.Raise()
@@ -1378,7 +1358,8 @@ class PrinterDlg(wx.Frame):
 					self.stPrinted.SetLabel("%s / %s" % (approximateValue(self.filePos), self.approximateFileSize))
 
 		if not self.gcdlg is None and self.printerState == "Printing":
-			if self.gcdlg.setPrintPosition(self.filePos):
+			changeLayers, self.printLayer = self.gcdlg.setPrintPosition(self.filePos)
+			if changeLayers:
 				self.refreshTimes()
 
 		if self.layerInfo != self.lastReportedLayerInfo:
