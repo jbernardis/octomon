@@ -68,7 +68,7 @@ class GCMove:
 		self.lastDx = dx
 		self.lastDy = dy
 
-		#print ("calculated print/move time from ({:f}, {:f}, {:f}) dist {:f} speed {:f}/{:f} == {:f}".format(dx, dy, dz, dist, speed, self.lastSpeed, mvTime))
+		#print ("calculated print/move time dxyz ({:f}, {:f}, {:f}) dist {:f} speed {:f}/{:f} == {:f}".format(dx, dy, dz, dist, speed, self.lastSpeed, mvTime))
 		
 		self.lastSpeed = speed
 
@@ -111,6 +111,9 @@ class GCLayer:
 			self.moveMoves += 1
 		elif mt == MOVE_EXTRUDE:
 			self.extrudeMoves += 1
+
+	def addTime(self, tm):
+		self.layerTime += tm
 			
 	def addFilament(self, f, t):
 		self.filament[t] += f
@@ -149,17 +152,21 @@ def get_float(paramStr, which, last, relativeValue=False):
 		return last
 
 class GCode:
-	def __init__(self, gc, acceleration, fDiameter, nExtr):
+	def __init__(self, gc, pname, settings):
 		self.gcode = gc.split("\n")
-		self.acceleration = acceleration
-		self.filamentDiameter = fDiameter
-		self.nExtr = nExtr
+
+		self.nExtr = settings.getSetting("nExtr", pname, 1)
+		self.acceleration = settings.getSetting("acceleration", pname, 1500)
+		self.filamentDiameter = settings.getSetting("filamentDiameter", pname, 1.75)
+		self.g28time = settings.getSetting("g28time", pname, 15)
+		self.g29time = settings.getSetting("g29time", pname, 60)
 
 		self.relativeExtrude = False
 		self.relativeMove = False
 		self.hasMovement = False
 		self.hasFilament = False
 		self.resetFilament = False
+		self.gcmd = ""
 
 		self.filament = [0.0] * self.nExtr
 		self.tool = 0
@@ -203,11 +210,16 @@ class GCode:
 					moveType = MOVE_RETRACT
 				dFilament = self.paramE - self.lastE
 
+			elif self.gcmd == "G28": # home command
+				self.layer.addTime(self.g28time)
+			elif self.gcmd == "G29": # probe bed command
+				self.layer.addTime(self.g29time)
+
 			self.filament[self.tool] += dFilament
-			self.layer.addFilament(dFilament, self.tool)					
+			self.layer.addFilament(dFilament, self.tool)
 			if moveType:
 				mv = GCMove(self.paramX, self.paramY, self.paramZ, self.paramE, self.paramF, moveType, offset)
-				t = mv.calcMoveTime(self.lastX, self.lastY, self.lastZ, self.lastE, self.lastF, acceleration)
+				t = mv.calcMoveTime(self.lastX, self.lastY, self.lastZ, self.lastE, self.lastF, self.acceleration)
 				self.layer.addMove(mv)
 				self.totalTime += t
 
@@ -257,18 +269,20 @@ class GCode:
 	def findLayerByOffset(self, offset):
 		lx = 0
 		if len(self.layers) == 0:
-			return 0
+			return 0, 0
 
 		for l in self.layers:
 			minOff, maxOff = l.getOffsets()
 			if minOff <= offset <= maxOff:
-				return lx
+				lpct = (float(offset-minOff)/float(maxOff-minOff))
+				return lx, lpct
 			lx += 1
 
-		if offset >= self.layers[-1].getOffsets()[1]:
-			return lx-1
+		minOff, maxOff = self.layers[-1].getOffsets()
+		if offset >= maxOff:
+			return lx-1, 1.0
 
-		return 0
+		return 0, 0
 
 	def layerCount(self):
 		return len(self.layers)
@@ -299,6 +313,7 @@ class GCode:
 		p = re.split("\\s+", gl, 1) + [""]
 
 		cmd = p[0].strip().upper()
+		self.gcmd = cmd
 		if cmd in ["G1", "G2"]:
 			if "X" in p[1]:
 				self.hasMovement = True

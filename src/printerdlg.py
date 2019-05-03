@@ -94,6 +94,7 @@ class PrinterDlg(wx.Frame):
 		self.timesdlg = None
 		self.collCompleteCB = None
 		self.printLayer = 0
+		self.lpct = 0
 
 		self.toRead = 0
 
@@ -717,7 +718,7 @@ class PrinterDlg(wx.Frame):
 			self.gcdlg.Raise()
 		else:
 			if self.selectedFilePath is None:
-				self.GCode = GCode("", self.acceleration, self.filamentDiameter, self.nExtr)
+				self.GCode = GCode("", self.pname, self.settings)
 			else:
 				try:
 					rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=20)
@@ -730,7 +731,7 @@ class PrinterDlg(wx.Frame):
 					return
 
 				if rc < 400:
-					self.GCode = GCode(gc, self.acceleration, self.filamentDiameter, self.nExtr)
+					self.GCode = GCode(gc, self.pname, self.settings)
 				else:
 					dlg = wx.MessageDialog(self, "Unable to retrieve G Code from printer.  Error = %d" % rc,
 							"Retrieve Error", wx.OK | wx.ICON_ERROR)
@@ -922,41 +923,40 @@ class PrinterDlg(wx.Frame):
 			dlg.Destroy()
 
 	def MenuToolsTimes(self, _):
-		if self.timesdlg is None:
-			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg, self.refreshTimes)
-
-		self.refreshTimes()
-		
-	def refreshTimes(self):
-		if self.timesdlg is None:
-			return 
-		
 		if self.GCode is None:
 			dlg = wx.MessageDialog(self, "No GCode to Analyze",
-				"No G Code", wx.OK | wx.ICON_INFORMATION)
+								   "No G Code", wx.OK | wx.ICON_INFORMATION)
 			dlg.ShowModal()
 			dlg.Destroy()
-			
-			self.timesdlg.Destroy()
+
 			self.timesdlg = None
 			return
-		
-		tt = self.GCode.getPrintTime()
-		lt = self.GCode.getLayerTimes()
 
-		ept = self.estimatedPrintTime		
-		pt = self.printTime
-		ptl = self.printTimeLeft
+		if self.timesdlg is None:
+			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg)
 
-		pl = sum(lt[:self.printLayer])
-		rl = sum(lt[self.printLayer+1:])
-
-		clt = lt[self.printLayer]
-
-		self.timesdlg.updateTimes(tt, ept, pt, pl, clt, rl, ptl)
+		self.timesdlg.updateTimesNewObject(self.estimatedPrintTime, self.GCode.getPrintTime())
+		self.refreshTimesNewLayer()
 		self.timesdlg.Show()
 		self.timesdlg.Raise()
-		
+
+	def refreshTimesNewLayer(self):
+		if self.timesdlg is None or self.GCode is None:
+			return
+
+		lt = self.GCode.getLayerTimes()
+		pl = sum(lt[:self.printLayer])
+		rl = sum(lt[self.printLayer+1:])
+		clt = lt[self.printLayer]
+
+		self.timesdlg.updateTimesNewLayer(self.printLayer, self.printTime, pl, clt, rl, self.printTimeLeft)
+		self.refreshTimesMidLayer()
+
+	def refreshTimesMidLayer(self):
+		if self.timesdlg is None or self.GCode is None:
+			return
+
+		self.timesdlg.updateTimesMidLayer(self.printTime, self.lpct, self.printTimeLeft)
 
 	def exitTimesDlg(self):
 		self.timesdlg.Destroy()
@@ -1358,9 +1358,11 @@ class PrinterDlg(wx.Frame):
 					self.stPrinted.SetLabel("%s / %s" % (approximateValue(self.filePos), self.approximateFileSize))
 
 		if not self.gcdlg is None and self.printerState == "Printing":
-			changeLayers, self.printLayer = self.gcdlg.setPrintPosition(self.filePos)
+			changeLayers, self.printLayer, self.lpct = self.gcdlg.setPrintPosition(self.filePos)
 			if changeLayers:
-				self.refreshTimes()
+				self.refreshTimesNewLayer()
+			else:
+				self.refreshTimesMidLayer()
 
 		if self.layerInfo != self.lastReportedLayerInfo:
 			self.layerInfo = self.lastReportedLayerInfo
@@ -1455,7 +1457,7 @@ class PrinterDlg(wx.Frame):
 
 		if downloadGCode:
 			if rc < 400:
-				self.GCode = GCode(gc, self.acceleration, self.filamentDiameter, self.nExtr)
+				self.GCode = GCode(gc, self.pname, self.settings)
 				self.gcdlg.reloadGCode(self.GCode, self.printFileName)
 			else:
 				self.logMessage("Unable to download G Code File")

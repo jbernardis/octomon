@@ -2,10 +2,6 @@
 
 # TODO
 #
-#  need to figure out what error I'm seeing if I turn the printer off while still connected - it's causing a hang
-#
-#  web cam
-#
 #  file upload - allow directory creation/traversal
 #  allow upload to sd - also allow delete and select - also, the printer status report tells us if the sd is ready -
 #  should use that to enable/disable - update marlin on cuboid
@@ -17,12 +13,6 @@
 #
 #  question - if I select a new file while paused, does the printer state move to operational, or does it stay paused?
 #  This is a potential issue because I need to know when to enable print versus restart.
-#
-#  figure out how to deal with printer connection - connect/disconnect 
-#
-# mplayer command line thus far - image still a little fuzzy:
-# ./mplayer -vf 'flip,mirror,dsize=800:600:0,scale=600:800' 'http://192.168.1.110/webcam/?action=stream'
-
 
 import os
 import inspect
@@ -32,13 +22,14 @@ from printerdlg import PrinterDlg
 from images import Images
 from settings import Settings
 from toolbox import ToolBox
-import wx.lib
+import wx
+from wx.lib import newevent
 
 BTNDIM = (48, 48)
 
 cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 
-(RegisterEvent, EVT_REGISTER) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
+(RegisterEvent, EVT_REGISTER) = newevent.NewEvent()  # @UndefinedVariable
 
 class MyFrame(wx.Frame):
 	def __init__(self):
