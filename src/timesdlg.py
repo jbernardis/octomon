@@ -252,7 +252,7 @@ class TimesDlg(wx.Frame):
 				self.totalDifference.SetLabel(formatElapsed(elapsed-calcElapsed) + text)
 
 	def positionString(self, lpct):
-		return "Layer: %.2f" % (float(self.layerx) + float(lpct))
+		return "Layer: %.2f" % (float(self.layerx+1) + float(lpct))
 
 	def onClose(self, _):
 		self.exitDlg()

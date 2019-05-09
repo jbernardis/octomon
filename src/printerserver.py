@@ -425,14 +425,16 @@ class GFile:
 		try:
 			req = requests.get(self.url + location, headers=self.header, timeout=to)
 		except:
+			print("exception")
 			return None
 
 		if req.status_code >= 400:
+			print("return code %d" % req.status_code)
 			return None
 
 		finfo = req.json()
 		if "files" not in finfo.keys():
-			return []
+			return {}
 
 		fl = finfo["files"]
 		result = {}
@@ -445,10 +447,21 @@ class GFile:
 
 				if not o in result.keys():
 					result[o] = []
+
 				if "refs" in f.keys() and "download" in f["refs"].keys():
-					result[o].append((f["name"], f["refs"]["download"]))
+					url = f["refs"]["download"]
 				else:
-					result[o].append((f["name"], None))
+					url = None
+				if "size" in f.keys():
+					sz = f["size"]
+				else:
+					sz = 0
+				if "date" in f.keys():
+					dt = f["date"]
+				else:
+					dt = 0
+
+				result[o].append((f["name"], url, sz, dt))
 
 		return result
 
@@ -460,7 +473,6 @@ class GFile:
 			rv = None
 
 		return req.status_code, rv
-
 
 class PrinterServer:
 	def __init__(self, apiKey, ipAddr):

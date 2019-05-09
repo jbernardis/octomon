@@ -4,15 +4,21 @@ Created on May 14, 2018
 @author: Jeff
 """
 
+import os
 import wx
+import wx.dataview
+import time
+from utils import approximateValue
 
 class node:
-	def __init__(self, path, origin, parent, leaf, downloadUrl):
+	def __init__(self, path, origin, parent, leaf, downloadUrl, sz, dt):
 		self.path = path
 		self.origin = origin
 		self.parent = parent
 		self.leaf = leaf
 		self.downloadUrl = downloadUrl
+		self.size = sz
+		self.date = dt
 		self.itemId = None
 		
 	def setItemId(self, itemid):
@@ -20,6 +26,9 @@ class node:
 		
 	def getItemId(self):
 		return self.itemId
+
+	def toString(self):
+		return "%s %s %s %s %s %s %s" % (str(self.path), str(self.parent), str(self.origin), str(self.leaf), str(self.downloadUrl), str(self.size), str(self.date))
 
 
 def mapHasPath(path, nl):
@@ -41,7 +50,12 @@ class FileDlg(wx.Frame):
 		self.settings = self.parent.settings
 		self.server = server
 		self.cb = cb
+		self.pname = pname
 		self.item = None
+
+		self.sortColumn = 0
+		self.sortDescending = False
+		self.dirList = {}
 
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 		
@@ -49,7 +63,7 @@ class FileDlg(wx.Frame):
 		
 		self.fmap = self.getFileMap()
 
-		self.tree = wx.TreeCtrl(self, wx.ID_ANY, size=(300, 200), style=wx.TR_HAS_BUTTONS)
+		self.tree = wx.dataview.TreeListCtrl(self, wx.ID_ANY, size=(450, 200), style=wx.TR_HAS_BUTTONS)
 
 		isz = (16, 16)
 		il = wx.ImageList(isz[0], isz[1])
@@ -61,18 +75,25 @@ class FileDlg(wx.Frame):
 		self.tree.SetImageList(il)
 		self.il = il
 
-		self.root = self.tree.AddRoot(pname)
-		self.tree.SetItemData(self.root, None)
-		self.tree.SetItemImage(self.root, self.fldridx, wx.TreeItemIcon_Normal)
-		self.tree.SetItemImage(self.root, self.fldropenidx, wx.TreeItemIcon_Expanded)
+		self.tree.AppendColumn("<file>")
+		self.tree.AppendColumn("<size>")
+		self.tree.AppendColumn("<date>")
+
+		self.tree.SetColumnWidth(0, 175)
+		self.tree.SetColumnWidth(1, 80)
+		self.tree.SetColumnWidth(2, 150)
+
+		self.root = self.tree.InsertItem(self.tree.GetRootItem(), wx.dataview.TLI_FIRST, self.pname)
+
+		self.tree.SetItemData(self.root, node("<root>", None, None, False, None, 0, 0))
+		self.tree.SetItemImage(self.root, closed=self.fldridx, opened=self.fldropenidx)
 		
 		self.populateTree()
-		
 
 		self.tree.Expand(self.root)
-		self.Bind(wx.EVT_TREE_SEL_CHANGED, self.onTreeSelection, self.tree)
-		self.Bind(wx.EVT_TREE_ITEM_ACTIVATED, self.onDoubleClick, self.tree)
-		
+		self.tree.Bind(wx.dataview.EVT_TREELIST_SELECTION_CHANGED, self.onTreeSelection)
+		self.tree.Bind(wx.dataview.EVT_TREELIST_ITEM_ACTIVATED, self.onDoubleClick)
+
 		self.bSelect = wx.BitmapButton(self, wx.ID_ANY, self.images.pngPrinter, size=(48, 48))
 		self.bSelect.SetToolTip("Select file for printing")
 		self.Bind(wx.EVT_BUTTON, self.onBSelect, self.bSelect)
@@ -104,35 +125,66 @@ class FileDlg(wx.Frame):
 		self.cbExpandAll.SetValue(self.expandAll)
 		self.Bind(wx.EVT_CHECKBOX, self.onCbExpandAll, self.cbExpandAll)
 		if self.expandAll:
-			self.tree.ExpandAll()
+			self.DoExpandAll()
 		
 		self.cbIncludeSd = wx.CheckBox(self, wx.ID_ANY, "Include SD Files")
 		self.cbIncludeSd.SetToolTip("Include files from SD card (if present)")
 		self.cbIncludeSd.SetValue(self.includeSd)
 		self.Bind(wx.EVT_CHECKBOX, self.onCbIncludeSd, self.cbIncludeSd)
 
+		self.rbFile = wx.RadioButton(self, wx.ID_ANY, " File name", style=wx.RB_GROUP)
+		self.rbSize = wx.RadioButton(self, wx.ID_ANY, " Size")
+		self.rbDate = wx.RadioButton(self, wx.ID_ANY, " Date")
+		self.rbFile.SetValue(True)
+		self.Bind(wx.EVT_RADIOBUTTON, self.onRbFile, self.rbFile)
+		self.Bind(wx.EVT_RADIOBUTTON, self.onRbSize, self.rbSize)
+		self.Bind(wx.EVT_RADIOBUTTON, self.onRbDate, self.rbDate)
+
+		self.cbSortDescending = wx.CheckBox(self, wx.ID_ANY, "Sort Descending")
+		self.cbSortDescending.SetValue(False)
+		self.Bind(wx.EVT_CHECKBOX, self.onCbSortDescending, self.cbSortDescending)
+
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.Add(self.tree)
-		sz.AddSpacer(5)
+		sz.AddSpacer(20)
 		
 		osz = wx.BoxSizer(wx.HORIZONTAL)
-		osz.Add(self.cbExpandAll)
-		osz.AddSpacer(10)
-		osz.Add(self.cbIncludeSd)
-		sz.Add(osz, 1, wx.ALIGN_CENTER_HORIZONTAL, 0)
+		oszv = wx.BoxSizer(wx.VERTICAL)
+		oszv.AddSpacer(20)
+		oszv.Add(self.cbExpandAll)
+		oszv.AddSpacer(10)
+		oszv.Add(self.cbIncludeSd)
+		osz.Add(oszv)
+
+		osz.AddSpacer(40)
+
+		box = wx.StaticBox(self, wx.ID_ANY, " Sort ")
+		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
+		bsizer.AddSpacer(5)
+		bsizer.Add(self.rbFile, 1, wx.ALL, 5)
+		bsizer.Add(self.rbSize, 1, wx.ALL, 5)
+		bsizer.Add(self.rbDate, 1, wx.ALL, 5)
+		bsizer.AddSpacer(10)
+		bsizer.Add(self.cbSortDescending)
+		bsizer.AddSpacer(10)
+
+		osz.Add(bsizer)
+
+		sz.Add(osz, 1, wx.ALIGN_CENTER, 0)
+		sz.AddSpacer(10)
 		
 		bsz = wx.BoxSizer(wx.HORIZONTAL)
 		bsz.Add(self.bSelect)
 		bsz.AddSpacer(10)
 		bsz.Add(self.bDownload)
 		bsz.AddSpacer(10)
-		bsz.Add(self.cbDelete, 1, wx.ALIGN_CENTER_VERTICAL, 0)
+		bsz.Add(self.cbDelete, 0, wx.ALIGN_CENTER_VERTICAL, 0)
 		bsz.AddSpacer(3)
 		bsz.Add(self.bDelete)
 		bsz.AddSpacer(10)
 		bsz.Add(self.bRefresh)
-		sz.Add(bsz, 1, wx.ALIGN_CENTER, 0)
+		sz.Add(bsz, 0, wx.ALIGN_CENTER, 0)
 		sz.AddSpacer(10)
 
 		hsz.AddSpacer(10)
@@ -145,7 +197,38 @@ class FileDlg(wx.Frame):
 
 		self.Show()
 
+	def onRbFile(self, evt):
+		self.sortColumn = 0
+		self.rebuildTree()
+
+	def onRbSize(self, evt):
+		self.sortColumn = 1
+		self.rebuildTree()
+
+	def onRbDate(self, evt):
+		self.sortColumn = 2
+		self.rebuildTree()
+
+	def onCbSortDescending(self, evt):
+		self.sortDescending = self.cbSortDescending.GetValue()
+		self.rebuildTree()
+
+	def DoExpandAll(self):
+		self.tree.Expand(self.root)
+		for o in self.dirList.keys():
+			for d in self.dirList[o]:
+				self.tree.Expand(d)
+
+
+	def DoCollapseAll(self):
+		for o in self.dirList.keys():
+			for d in self.dirList[o]:
+				self.tree.Collapse(d)
+		self.tree.Collapse(self.root)
+
+
 	def getFileMap(self):
+		fl = self.server.gfile.listFiles(local=True, sd=self.includeSd, recursive=True)
 		try:
 			fl = self.server.gfile.listFiles(local=True, sd=self.includeSd, recursive=True)
 		except:
@@ -165,7 +248,7 @@ class FileDlg(wx.Frame):
 		fmap = {}
 		for origin, ofl in fl.items():
 			fmap[origin] = []
-			for fn, dnurl in ofl:
+			for fn, dnurl, fsz, fdt in ofl:
 				pl = fn.split("/")
 				path = None
 				for p in pl:
@@ -176,35 +259,83 @@ class FileDlg(wx.Frame):
 						parent = path
 						path = path + "/" + p
 					if not mapHasPath(path, fmap[origin]):
-						fmap[origin].append(node(path, origin, parent, path == fn, dnurl))
+						fmap[origin].append(node(path, origin, parent, path == fn, dnurl, fsz, fdt))
 		return fmap
+
+	def getSortKey(self, f):
+		if self.sortColumn == 0:
+			return f.path
+		elif self.sortColumn == 1:
+			return f.size
+		elif self.sortColumn == 2:
+			return f.date
+		else:
+			return f.path
 		
 	def populateTree(self):
+		self.dirList = {}
 		for origin in sorted(self.fmap.keys()):
 			if origin == "sdcard" and not self.includeSd:
 				continue
 			
 			nodeMap = {}
-			originNode = self.tree.AppendItem(self.root, origin)
-			nodeMap[origin] = originNode
-			self.tree.SetItemData(originNode, None)
-			self.tree.SetItemImage(originNode, self.fldridx, wx.TreeItemIcon_Normal)
-			self.tree.SetItemImage(originNode, self.fldropenidx, wx.TreeItemIcon_Expanded)
+			dirs = []
+			dirmap = {}
+			for fl in self.fmap[origin]:
+				fdir, fbn = os.path.split(fl.path)
+				if fdir not in dirs:
+					dirs.append(fdir)
+					dirmap[fdir] = []
 
-			for fl in sorted(self.fmap[origin], key=lambda x: x.path):
-				parentNode = nodeMap[fl.parent]
-				nextNode = self.tree.AppendItem(parentNode, fl.path)
-				nodeMap[fl.path] = nextNode
-				fl.setItemId(nextNode)
-				self.tree.SetItemData(nextNode, fl)
-				if fl.leaf:
-					self.tree.SetItemImage(nextNode, self.fileidx, wx.TreeItemIcon_Normal)
-					self.tree.SetItemImage(nextNode, self.fileidx, wx.TreeItemIcon_Expanded)
-					self.tree.SetItemImage(nextNode, self.selectedidx, wx.TreeItemIcon_Selected)
-					self.tree.SetItemImage(nextNode, self.selectedidx, wx.TreeItemIcon_SelectedExpanded)
+				dirmap[fdir].append(fl)
+
+			for fdir in sorted(dirs):
+				if fdir == "":
+					originNode = self.tree.AppendItem(self.root, origin)
+					nodeMap[origin] = originNode
+					self.tree.SetItemData(originNode, node("<%s>" % origin, None, None, False, None, 0, 0))
+					self.tree.SetItemImage(originNode, closed=self.fldridx, opened=self.fldropenidx)
 				else:
-					self.tree.SetItemImage(nextNode, self.fldridx, wx.TreeItemIcon_Normal)
-					self.tree.SetItemImage(nextNode, self.fldropenidx, wx.TreeItemIcon_Expanded)
+					parentString = os.path.split(fdir)[0]
+					if parentString == '':
+						parentString = origin
+					parentNode = nodeMap[parentString]
+					nextNode = self.tree.AppendItem(parentNode, fdir)
+					nodeMap[fdir] = nextNode
+
+					self.tree.SetItemData(nextNode, node("<%s>" % fdir, None, None, False, None, 0, 0))
+					self.tree.SetItemText(nextNode, 0, os.path.basename(fdir))
+					self.tree.SetItemText(nextNode, 1, "")
+					self.tree.SetItemText(nextNode, 2, "")
+					self.tree.SetItemImage(nextNode, closed=self.fldridx, opened=self.fldropenidx)
+
+			for fdir in sorted(dirs, reverse=self.sortDescending):
+				for fl in sorted(dirmap[fdir], key=self.getSortKey, reverse=self.sortDescending):
+					if not fl.leaf:
+						continue
+
+					parentNode = nodeMap[fl.parent]
+					nextNode = self.tree.AppendItem(parentNode, fl.path)
+					nodeMap[fl.path] = nextNode
+
+					fl.setItemId(nextNode)
+					self.tree.SetItemData(nextNode, fl)
+					self.tree.SetItemText(nextNode, 0, os.path.basename(fl.path))
+
+					if fl.size == 0:
+						fsz = ""
+					else:
+						fsz = approximateValue(fl.size)
+					if fl.date == 0:
+						fdt = ""
+					else:
+						fdt = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(fl.date))
+
+					self.tree.SetItemText(nextNode, 1, fsz)
+					self.tree.SetItemText(nextNode, 2, fdt)
+					self.tree.SetItemImage(nextNode, closed=wx.NO_IMAGE, opened=wx.NO_IMAGE)
+			dl = [nodeMap[x] for x in dirs if x != ""]
+			self.dirList[origin] = [nodeMap[origin]] + dl
 
 
 	def enableControls(self, isAFile, isDownloadable):
@@ -253,7 +384,7 @@ class FileDlg(wx.Frame):
 				return
 			
 			if self.item:
-				self.tree.Delete(self.item)
+				self.tree.DeleteItem(self.item)
 
 				for origin in list(self.fmap.keys()):
 					for fx in range(len(self.fmap[origin])):
@@ -264,7 +395,7 @@ class FileDlg(wx.Frame):
 						
 				self.item = None
 				self.selectedItem = None
-				self.tree.ClearFocusedItem()
+				#self.tree.ClearFocusedItem()
 				self.enableControls(False, False)
 
 	def onBDownload(self, _):
@@ -275,44 +406,43 @@ class FileDlg(wx.Frame):
 					 "url": self.selectedItem.downloadUrl})
 			
 	def onBRefresh(self, _):
-		self.tree.DeleteChildren(self.root)
 		self.fmap = self.getFileMap()
+
+		self.rebuildTree()
+
+	def rebuildTree(self):
+		self.tree.DeleteAllItems()
+		self.root = self.tree.InsertItem(self.tree.GetRootItem(), wx.dataview.TLI_FIRST, self.pname)
+		self.tree.SetItemData(self.root, None)
+		self.tree.SetItemImage(self.root, closed=self.fldridx, opened=self.fldropenidx)
 		self.populateTree()
 		self.item = None
 		self.selectedItem = None
-		self.tree.ClearFocusedItem()
 		self.enableControls(False, False)
 		if self.expandAll:
-			self.tree.ExpandAll()
+			self.DoExpandAll()
 		else:
-			self.tree.CollapseAll()
+			self.DoCollapseAll()
 			self.tree.Expand(self.root)
-			
+
 	def onCbExpandAll(self, _):
 		self.expandAll = self.cbExpandAll.GetValue()
 		self.settings.setSetting("fileexpandall", str(self.expandAll))
 		if self.expandAll:
-			self.tree.ExpandAll()
+			self.DoExpandAll()
 		else:
-			self.tree.CollapseAll()
+			self.DoCollapseAll()
 			self.tree.Expand(self.root)
 			
 	def onCbIncludeSd(self, _):
 		self.includeSd = self.cbIncludeSd.GetValue()
 		self.settings.setSetting("filesd", str(self.includeSd))
-		
-		self.tree.DeleteChildren(self.root)
-		
 		self.fmap = self.getFileMap()
-		self.populateTree()
-		self.item = None
-		self.selectedItem = None
-		self.tree.ClearFocusedItem()
-		self.enableControls(False, False)
-		if self.expandAll:
-			self.tree.ExpandAll()
+
+		self.rebuildTree()
 
 	def onTreeSelection(self, evt):
+		oldItem = self.item
 		self.item = evt.GetItem()
 		if not self.item:
 			self.enableControls(False, False)
@@ -324,6 +454,9 @@ class FileDlg(wx.Frame):
 		self.enableControls(isAFile, isDownloadable)
 
 		if isAFile:
+			if oldItem:
+				self.tree.SetItemImage(oldItem, opened=wx.NO_IMAGE, closed=wx.NO_IMAGE)
+			self.tree.SetItemImage(self.item, opened=self.selectedidx, closed=self.selectedidx)
 			self.selectedItem = itemData
 		else:
 			self.selectedItem = None
