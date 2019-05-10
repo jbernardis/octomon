@@ -37,6 +37,10 @@ def mapHasPath(path, nl):
 			return True
 	return False
 
+treesize = (600, 200) if os.name == 'posix' else (450, 200)
+treecol0 = 300        if os.name == 'posix' else 226
+treecol1 = 100        if os.name == 'posix' else 80
+treecol2 = 180        if os.name == 'posix' else 120
 
 class FileDlg(wx.Frame):
 	def __init__(self, parent, server, pname, cb):
@@ -63,7 +67,7 @@ class FileDlg(wx.Frame):
 		
 		self.fmap = self.getFileMap()
 
-		self.tree = wx.dataview.TreeListCtrl(self, wx.ID_ANY, size=(450, 200), style=wx.TR_HAS_BUTTONS)
+		self.tree = wx.dataview.TreeListCtrl(self, wx.ID_ANY, size=treesize, style=wx.TR_HAS_BUTTONS)
 
 		isz = (16, 16)
 		il = wx.ImageList(isz[0], isz[1])
@@ -78,10 +82,6 @@ class FileDlg(wx.Frame):
 		self.tree.AppendColumn("<file>")
 		self.tree.AppendColumn("<size>")
 		self.tree.AppendColumn("<date>")
-
-		self.tree.SetColumnWidth(0, 175)
-		self.tree.SetColumnWidth(1, 80)
-		self.tree.SetColumnWidth(2, 150)
 
 		self.root = self.tree.InsertItem(self.tree.GetRootItem(), wx.dataview.TLI_FIRST, self.pname)
 
@@ -196,6 +196,10 @@ class FileDlg(wx.Frame):
 		self.Fit()
 
 		self.Show()
+		self.tree.SetColumnWidth(0, treecol0)
+		self.tree.SetColumnWidth(1, treecol1)
+		self.tree.SetColumnWidth(2, treecol2)
+
 
 	def onRbFile(self, evt):
 		self.sortColumn = 0
