@@ -6,6 +6,9 @@ Created on May 4, 2018
 import wx
 from utils import formatElapsed
 
+LABEL_WIDTH = 400
+DATA_WIDTH = 150
+
 class TimesDlg(wx.Frame):
 	def __init__(self, parent, pname, images, cbexit):
 		wx.Frame.__init__(self, None, wx.ID_ANY, "Print Time Analysis for %s" % pname)
@@ -36,11 +39,11 @@ class TimesDlg(wx.Frame):
 		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Total estimated print time:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Total estimated print time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalPTOct = t
 		szRptLine.Add(self.totalPTOct)
@@ -48,11 +51,11 @@ class TimesDlg(wx.Frame):
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
 		t = wx.StaticText(self, wx.ID_ANY, "Estimated remaining print time:", style=wx.ALIGN_RIGHT,
-						  size=(300, -1))
+						  size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalRemainOct = t
 		szRptLine.Add(self.totalRemainOct)
@@ -67,44 +70,44 @@ class TimesDlg(wx.Frame):
 		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Total print time:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Total print time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalPTCalc = t
 		szRptLine.Add(self.totalPTCalc)
 		bsizer.Add(szRptLine)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Current layer print time:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Current layer print time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalCurrentLayer = t
 		szRptLine.Add(self.totalCurrentLayer)
 		bsizer.Add(szRptLine)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Estimated print time to current position:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Estimated print time to current position:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalPrevLayers = t
 		szRptLine.Add(self.totalPrevLayers)
 		bsizer.Add(szRptLine)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Estimated print time remaining:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Estimated print time remaining:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalRemainCalc = t
 		szRptLine.Add(self.totalRemainCalc)
@@ -120,33 +123,33 @@ class TimesDlg(wx.Frame):
 		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Current Position:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Current Position:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.currentPosition = t
 		szRptLine.Add(self.currentPosition)
 		bsizer.Add(szRptLine)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Elapsed time:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Elapsed time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalElapsed = t
 		szRptLine.Add(self.totalElapsed)
 		bsizer.Add(szRptLine)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Difference from calculated:", style=wx.ALIGN_RIGHT, size=(300, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Difference from calculated:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
-		t = wx.StaticText(self, wx.ID_ANY, "", size=(100, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "", size=(DATA_WIDTH, -1))
 		t.SetFont(font)
 		self.totalDifference = t
 		szRptLine.Add(self.totalDifference)
@@ -252,7 +255,7 @@ class TimesDlg(wx.Frame):
 				self.totalDifference.SetLabel(formatElapsed(elapsed-calcElapsed) + text)
 
 	def positionString(self, lpct):
-		return "Layer: %.2f" % (float(self.layerx+1) + float(lpct))
+		return "L%d+(%.2f)" % (self.layerx+1, float(lpct))
 
 	def onClose(self, _):
 		self.exitDlg()
