@@ -1021,7 +1021,7 @@ class PrinterDlg(wx.Frame):
 
 		elif cmd["action"] == "download" and "url" in cmd.keys():
 			try:
-				rc, gc = self.server.gfile.downloadFile(cmd["url"], to=5)
+				rc, gc = self.server.gfile.downloadFile(cmd["url"], to=20)
 			except:
 				dlg = wx.MessageDialog(self, "Unknown error during file download",
 									   "Download Error", wx.OK | wx.ICON_ERROR)
