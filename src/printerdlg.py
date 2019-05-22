@@ -1647,7 +1647,7 @@ class PrinterDlg(wx.Frame):
 			self.zSpeed = spd
 			self.settings.setSetting("zSpeed", str(spd), self.pname)
 
-	def onChTools(self, _):
+	def onChTools(self, evt):
 		s = evt.GetSelection()
 		if s == wx.NOT_FOUND:
 			return

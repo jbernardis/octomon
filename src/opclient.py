@@ -1,11 +1,9 @@
 # coding=utf-8
-from __future__ import absolute_import, division, print_function
-
-__license__ = 'GNU Affero General Public License http://www.gnu.org/licenses/agpl.html'
-__copyright__ = "Copyright (C) 2015 The OctoPrint Project - Released under terms of the AGPLv3 License"
 
 import requests
 import time
+import functools
+import websocket
 
 
 def build_base_url(https=False, httpuser=None, httppass=None, host=None, port=None, prefix=None):
@@ -50,7 +48,6 @@ class SocketClient(object):
                 pass
 
         # prepare a bunch of callback methods
-        import functools
         callbacks = dict()
         for callback in ("on_open", "on_message", "on_error", "on_close"):
             # now, normally we could just use functools.partial for something like
@@ -64,7 +61,6 @@ class SocketClient(object):
             callbacks[callback] = factory(callback)
 
         # initialize socket instance with url and callbacks
-        import websocket
         kwargs = dict(self._ws_kwargs)
         kwargs.update(callbacks)
         self._ws = websocket.WebSocketApp(self._url, **kwargs)
