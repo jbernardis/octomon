@@ -372,8 +372,10 @@ class FileDlg(wx.Frame):
 
 	def onBDelete(self, _):
 		if self.selectedItem:
+			sitm = self.selectedItem
+			itm = self.item
 			try:
-				rc = self.server.gfile.deleteFile(self.selectedItem.origin, self.selectedItem.path)
+				rc = self.server.gfile.deleteFile(sitm.origin, sitm.path)
 			except:
 				dlg = wx.MessageDialog(self, "Unknown error during file delete",
 									   "Delete Error", wx.OK | wx.ICON_ERROR)
@@ -387,20 +389,20 @@ class FileDlg(wx.Frame):
 				dlg.Destroy()
 				return
 			
-			if self.item:
-				self.tree.SetItemImage(self.item, opened=wx.NO_IMAGE, closed=wx.NO_IMAGE)
-				self.tree.DeleteItem(self.item)
+			if itm:
+				self.selectedItem = None
+				self.item = None
+				self.enableControls(False, False)
+
+				self.tree.SetItemImage(itm, opened=wx.NO_IMAGE, closed=wx.NO_IMAGE)
+				self.tree.DeleteItem(itm)
 
 				for origin in list(self.fmap.keys()):
 					for fx in range(len(self.fmap[origin])):
 						fl = self.fmap[origin][fx]
-						if self.item == fl.getItemId():
+						if itm == fl.getItemId():
 							del self.fmap[origin][fx]
 							break
-						
-				self.item = None
-				self.selectedItem = None
-				self.enableControls(False, False)
 
 	def onBDownload(self, _):
 		if self.selectedItem:
