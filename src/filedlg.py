@@ -388,6 +388,7 @@ class FileDlg(wx.Frame):
 				return
 			
 			if self.item:
+				self.tree.SetItemImage(self.item, opened=wx.NO_IMAGE, closed=wx.NO_IMAGE)
 				self.tree.DeleteItem(self.item)
 
 				for origin in list(self.fmap.keys()):

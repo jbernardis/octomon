@@ -152,7 +152,9 @@ class GCodeDlg(wx.Frame):
 		self.setSliderRange()
 
 		# send new gcode to gcf
+		self.printPosition = 0
 		self.gcf.loadGCode(gcode)
+		self.showLayerInfo()
 
 	def setSliderRange(self):
 		n = self.gcode.layerCount()
