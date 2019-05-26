@@ -67,7 +67,7 @@ class FileDlg(wx.Frame):
 		
 		self.fmap = self.getFileMap()
 
-		self.tree = wx.dataview.TreeListCtrl(self, wx.ID_ANY, size=treesize, style=wx.TR_HAS_BUTTONS)
+		self.tree = wx.dataview.TreeListCtrl(self, wx.ID_ANY, size=treesize, style=wx.dataview.TL_SINGLE)
 
 		isz = (16, 16)
 		il = wx.ImageList(isz[0], isz[1])
@@ -400,7 +400,6 @@ class FileDlg(wx.Frame):
 						
 				self.item = None
 				self.selectedItem = None
-				#self.tree.ClearFocusedItem()
 				self.enableControls(False, False)
 
 	def onBDownload(self, _):
