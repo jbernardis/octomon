@@ -6,6 +6,7 @@ INIFILE = "octo.ini"
 LOOKBACKMINUTES = 10
 XCOUNT = LOOKBACKMINUTES * 60
 
+pathSettings = ["lastDirectory", "lastFwDirectory"]
 
 def parseBoolean(val, defaultVal):
 	lval = val.lower()
@@ -55,6 +56,12 @@ class Settings:
 				return True
 			elif v == "false":
 				return False
+
+			if os.name != 'posix':
+				# windows uses backslashes as dir separator, but can tolerate fwd slashes
+				# replace back with fwd to avoid escape sequence issues
+				if setting in pathSettings:
+					v = v.replace("\\", "/")
 
 			return eval("\"%s\"" % v)
 

@@ -178,11 +178,15 @@ class TimesDlg(wx.Frame):
 		self.SetSizer(sz)
 		self.Fit()
 
-	def updateTimesNewObject(self, totOct, totCalc):
+	def updateTimesEstimated(self, totOct):
 		if totOct is None:
 			self.totalPTOct.SetLabel("??")
 		else:
 			self.totalPTOct.SetLabel(formatElapsed(totOct))
+
+	def updateTimesNewObject(self, totOct, totCalc):
+		if totOct is not None:
+			self.updateTimesEstimated(totOct)
 
 		self.totalPTCalc.SetLabel(formatElapsed(totCalc))
 		self.totalDifference.SetLabel("??")

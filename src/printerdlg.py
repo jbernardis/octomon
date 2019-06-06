@@ -1299,7 +1299,12 @@ class PrinterDlg(wx.Frame):
 					self.gcdlg.Destroy()
 				except:
 					pass
+				try:
+					self.timesdlg.Destroy()
+				except:
+					pass
 				self.gcdlg = None
+				self.timesdlg = None
 			else:
 				self.stPrinterFile.SetLabel(self.printFileName)
 				if self.gcdlg is not None:
@@ -1322,6 +1327,8 @@ class PrinterDlg(wx.Frame):
 				self.stPrinterEstPrintTime.SetLabel("-")
 			else:
 				self.stPrinterEstPrintTime.SetLabel(formatElapsed(self.estimatedPrintTime))
+				if self.timesdlg is not None:
+					self.timesdlg.updateTimesEstimated(self.estimatedPrintTime)
 
 		if self.completion != self.lastReportedCompletion:
 			self.completion = self.lastReportedCompletion
@@ -1452,13 +1459,23 @@ class PrinterDlg(wx.Frame):
 				self.gcdlg.Destroy()
 			except:
 				pass
+			try:
+				self.timesdlg.Destroy()
+			except:
+				pass
 			self.gcdlg = None
+			self.timesdlg = None
 			downloadGCode = False
 
 		if downloadGCode:
 			if rc < 400:
 				self.GCode = GCode(gc, self.pname, self.settings)
 				self.gcdlg.reloadGCode(self.GCode, self.printFileName)
+				self.printLayer = 0
+				self.filePos = 0
+				if self.timesdlg is not None:
+					self.timesdlg.updateTimesNewObject(None, self.GCode.getPrintTime())
+					self.refreshTimesNewLayer()
 			else:
 				self.logMessage("Unable to download G Code File")
 				self.GCode = None
@@ -1466,8 +1483,13 @@ class PrinterDlg(wx.Frame):
 					self.gcdlg.Destroy()
 				except:
 					pass
+				try:
+					self.timesdlg.Destroy()
+				except:
+					pass
 				self.gcdlg = None
-		
+				self.timesdlg = None
+
 	def logMessage(self, msg, sec=10):
 		self.msgTimer = sec
 		self.SetStatusText(msg)
