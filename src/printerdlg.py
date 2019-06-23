@@ -1008,7 +1008,14 @@ class PrinterDlg(wx.Frame):
 				self.selectedFilePath = cmd["path"]
 				self.enablePrintingControls()
 				self.bPrint.SetBitmap(self.images.pngPrint)
-				
+				self.filePos = 0
+				if self.gcdlg is not None:
+					_, self.printLayer, self.lpct = self.gcdlg.setPrintPosition(self.filePos)
+				else:
+					self.printLayer = 0
+					self.lpct = 0
+
+
 		elif cmd["action"] == "delete":
 			try:
 				self.server.gfile.deleteFile(cmd["origin"], cmd["path"])
