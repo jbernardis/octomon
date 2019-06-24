@@ -4,6 +4,7 @@ Created on May 4, 2018
 @author: Jeff
 """
 import wx
+import os
 from utils import formatElapsed
 
 LABEL_WIDTH = 400
@@ -11,7 +12,9 @@ DATA_WIDTH = 150
 
 class TimesDlg(wx.Frame):
 	def __init__(self, parent, pname, images, cbexit):
-		wx.Frame.__init__(self, None, wx.ID_ANY, "Print Time Analysis for %s" % pname)
+		wx.Frame.__init__(self, None, wx.ID_ANY, "")
+		self.pname = pname
+		self.setTitleText(None)
 		self.SetBackgroundColour("white")
 		self.Bind(wx.EVT_CLOSE, self.onClose)
 
@@ -161,7 +164,6 @@ class TimesDlg(wx.Frame):
 
 		szReport.AddSpacer(10)
 
-
 		szbtn = wx.BoxSizer(wx.HORIZONTAL)	
 		self.bExit= wx.BitmapButton(self, wx.ID_ANY, self.images.pngOk, size=(48,48))
 		self.bExit.SetToolTip("Exit Dialog")
@@ -178,15 +180,23 @@ class TimesDlg(wx.Frame):
 		self.SetSizer(sz)
 		self.Fit()
 
+	def setTitleText(self, fn):
+		ts = "%s Print Times" % self.pname
+		if fn is not None:
+			ts += (" for %s" % os.path.basename(fn))
+		self.SetTitle(ts)
+
 	def updateTimesEstimated(self, totOct):
 		if totOct is None:
 			self.totalPTOct.SetLabel("??")
 		else:
 			self.totalPTOct.SetLabel(formatElapsed(totOct))
 
-	def updateTimesNewObject(self, totOct, totCalc):
+	def updateTimesNewObject(self, fn, totOct, totCalc):
 		if totOct is not None:
 			self.updateTimesEstimated(totOct)
+
+		self.setTitleText(fn)
 
 		self.totalPTCalc.SetLabel(formatElapsed(totCalc))
 		self.totalDifference.SetLabel("??")

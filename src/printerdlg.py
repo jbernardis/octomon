@@ -935,7 +935,7 @@ class PrinterDlg(wx.Frame):
 		if self.timesdlg is None:
 			self.timesdlg = TimesDlg(self, self.pname, self.images, self.exitTimesDlg)
 
-		self.timesdlg.updateTimesNewObject(self.estimatedPrintTime, self.GCode.getPrintTime())
+		self.timesdlg.updateTimesNewObject(self.printFileName, self.estimatedPrintTime, self.GCode.getPrintTime())
 		self.refreshTimesNewLayer()
 		self.timesdlg.Show()
 		self.timesdlg.Raise()
@@ -1481,7 +1481,7 @@ class PrinterDlg(wx.Frame):
 				self.printLayer = 0
 				self.filePos = 0
 				if self.timesdlg is not None:
-					self.timesdlg.updateTimesNewObject(None, self.GCode.getPrintTime())
+					self.timesdlg.updateTimesNewObject(self.printFileName, None, self.GCode.getPrintTime())
 					self.refreshTimesNewLayer()
 			else:
 				self.logMessage("Unable to download G Code File")
