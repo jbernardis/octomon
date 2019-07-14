@@ -42,13 +42,13 @@ MENU_FILE_UPLOAD = 102
 MENU_FILE_UPDATE = 103
 MENU_VIEW_TEMPERATURES = 201
 MENU_VIEW_GCODE = 202
-MENU_VIEW_TERMINAL = 203
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 MENU_CAMERA_VIEW = 401
 MENU_CAMERA_OCTOLAPSE = 402
 MENU_TOOLS_TIMES = 501
 MENU_TOOLS_FIRMWARE = 504
+MENU_TOOLS_TERMINAL = 505
 
 MAX_READ_TIMEOUTS = 15
 
@@ -177,7 +177,6 @@ class PrinterDlg(wx.Frame):
 		menu2 = wx.Menu()
 		menu2.Append(MENU_VIEW_TEMPERATURES, "&Temperatures", "Graphcal display of temperatures")
 		menu2.Append(MENU_VIEW_GCODE, "&G Code", "Visually track G Code as it prints")
-		menu2.Append(MENU_VIEW_TERMINAL, "Ter&minal", "View commands set to the printer and their responses")
 		menuBar.Append(menu2, "&View")
 		
 		menu3 = wx.Menu()
@@ -188,6 +187,7 @@ class PrinterDlg(wx.Frame):
 		menu4.Append(MENU_TOOLS_TIMES, "&Print Times", "Analyze print times")
 		menu4.Append(MENU_TOOLS_FIRMWARE, "&Firmware", "View/Edit printer firmware settings")
 		menu4.AppendSubMenu(menu3, "&Connection")
+		menu4.Append(MENU_TOOLS_TERMINAL, "Ter&minal", "View commands sent to the printer and their responses")
 		menuBar.Append(menu4, "&Tools")
 		
 		menu5 = wx.Menu()
@@ -201,13 +201,13 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuFileUpdate, id=MENU_FILE_UPDATE)
 		self.Bind(wx.EVT_MENU, self.MenuViewTemps, id=MENU_VIEW_TEMPERATURES)
 		self.Bind(wx.EVT_MENU, self.MenuViewGCode, id=MENU_VIEW_GCODE)
-		self.Bind(wx.EVT_MENU, self.MenuViewTerminal, id=MENU_VIEW_TERMINAL)
 		self.Bind(wx.EVT_MENU, self.MenuConnect, id=MENU_CONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuCameraView, id=MENU_CAMERA_VIEW)
 		self.Bind(wx.EVT_MENU, self.MenuCameraOctolapse, id=MENU_CAMERA_OCTOLAPSE)
 		self.Bind(wx.EVT_MENU, self.MenuToolsTimes, id=MENU_TOOLS_TIMES)
 		self.Bind(wx.EVT_MENU, self.MenuToolsFirmware, id=MENU_TOOLS_FIRMWARE)
+		self.Bind(wx.EVT_MENU, self.MenuToolsTerminal, id=MENU_TOOLS_TERMINAL)
 
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.AddSpacer(10)
@@ -748,16 +748,16 @@ class PrinterDlg(wx.Frame):
 		self.gcdlg = None
 		self.GCode = None
 
-	def MenuViewTerminal(self, _):
-		self.termdlg = TerminalDlg(self, self.server, self.pname, self.settings, self.images, self.exitTermDlg)
-		self.termdlg.Show()
-
 	def exitTermDlg(self):
 		self.termdlg.Destroy()
 		self.termdlg = None
 
 	def MenuToolsFirmware(self, _):
 		self.startFwCollection(self.flash, self.haveAllSettings)
+
+	def MenuToolsTerminal(self, _):
+		self.termdlg = TerminalDlg(self, self.server, self.pname, self.settings, self.images, self.exitTermDlg)
+		self.termdlg.Show()
 
 	def startFwCollection(self, container, callback):
 		self.collCompleteCB = callback
