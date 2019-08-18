@@ -73,7 +73,7 @@ class TimesDlg(wx.Frame):
 		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
 
 		szRptLine = wx.BoxSizer(wx.HORIZONTAL)
-		t = wx.StaticText(self, wx.ID_ANY, "Total print time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
+		t = wx.StaticText(self, wx.ID_ANY, "Total estimated print time:", style=wx.ALIGN_RIGHT, size=(LABEL_WIDTH, -1))
 		t.SetFont(font)
 		szRptLine.Add(t)
 		szRptLine.AddSpacer(5)
