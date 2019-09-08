@@ -1,60 +1,91 @@
+from zeroconf import ServiceBrowser, Zeroconf
 from printerserver import PrinterServer
-import socket
-import time
+import threading
+
+
+class MyListener(object):
+	def __init__(self, register, apiKeys):
+		self.apiKeys = apiKeys
+		self.register = register
+
+	def remove_service(self, zeroconf, stype, name):
+		pass
+
+	def add_service(self, zeroconf, stype, name):
+		info = zeroconf.get_service_info(stype, name)
+		if info is not None:
+			s = name.split("\"")
+			if len(s) >= 3:
+				pName = s[1]
+				if pName in self.apiKeys.keys():
+					ipaddr = "%d.%d.%d.%d" % (
+						info.address[0], info.address[1], info.address[2], info.address[3])
+					ps = PrinterServer(self.apiKeys[pName], ipaddr)
+					ps.addPlugin("octolapse")
+					ps.addPlugin("softwareupdate")
+					self.register(pName, ps)
+				else:
+					print ("Skipping unknown printer: %s - no associated API key" % pName)
+			else:
+				print ("Unable to parse printer name from (%s)" % name)
+
 
 class PrinterInstances:
 	def __init__(self, plist, settings, registerPrinter):
-
-#		self.closed = False
+		self.servers = {}
+		self.priorServers = {}
 		self.apiKeys = {}
-		self.dnslist = [settings.getSetting("dnsname", p) for p in plist]
-		self.plist = [p for p in plist]
 		for p in plist:
 			self.apiKeys[p] = settings.getSetting("apiKey", p)
 
-		self.servers = {}
-
 		self.registerPrinter = registerPrinter
+		self.zeroconf = None
+		self.newServers = {}
+		self.listener = None
+		self.browser = None
+		self.dtmr = None
+		self.tmr = None
 		self.refresh()
 
 	def refresh(self):
-		for px in range(len(self.plist)):
-			pdns = self.dnslist[px]
-			pName = self.plist[px]
-			dns = "%s.local" % pdns
-			try:
-				s = socket.getaddrinfo(dns, 80)
-				if len(s) < 1:
-					ipAddr = None
-				else:
-					if s[0][0] == socket.AddressFamily.AF_INET6:
-						ipAddr = "[%s]" % s[0][4][0]
-					else:
-						ipAddr = s[0][4][0]
-			except:
-				ipAddr = None
+		if self.zeroconf:
+			self.zeroconf.close()
 
-			if ipAddr is None:
-				if pName in self.servers:
-					self.registerPrinter("remove", pName)
-					del(self.servers[pName])
-				else:
-					pass
-					#print("Ignoring printer removal of printer that is already removed")
-			else:
-				if pName not in self.servers:
-					ps = PrinterServer(self.apiKeys[pName], ipAddr)
-					ps.addPlugin("octolapse")
-					ps.addPlugin("softwareupdate")
-					self.servers[pName] = ps
+		self.priorServers = self.servers.copy()
+		self.newServers = {}
 
-					self.registerPrinter("add", pName)
-				else:
-					pass
-					#print("skipping printer already registered")
+		self.zeroconf = Zeroconf()
+		self.listener = MyListener(self.register, self.apiKeys)
+		self.browser = ServiceBrowser(self.zeroconf, "_octoprint._tcp.local.", self.listener)
+
+		self.dtmr = threading.Timer(10, self.commit)
+		self.dtmr.start()
+		self.tmr = threading.Timer(30, self.refresh)
+		self.tmr.start()
+
+	def commit(self):
+		newSvr = self.newServers.keys()
+		priorSvr = self.priorServers.keys()
+
+		for p in priorSvr:
+			if p not in newSvr:
+				self.registerPrinter("remove", p)
+
+		self.servers = self.newServers.copy()
+
+	def register(self, pName, ps):
+		self.newServers[pName] = ps
+		if not pName in self.servers.keys():
+			self.servers[pName] = ps
+			self.registerPrinter("add", pName)
 
 	def getPrinterServer(self, pName):
 		try:
 			return self.servers[pName]
 		except IndexError:
 			return None
+
+	def close(self):
+		self.tmr.cancel()
+		self.dtmr.cancel()
+		self.zeroconf.close()

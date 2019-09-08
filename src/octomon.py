@@ -51,8 +51,6 @@ class MyFrame(wx.Frame):
 
 		sz = wx.BoxSizer(wx.VERTICAL)
 		sz.AddSpacer(20)
-
-		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		
 		box = wx.StaticBox(self, -1, "Printers")
 		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
@@ -67,15 +65,7 @@ class MyFrame(wx.Frame):
 			bsizer.Add(b, 0, wx.ALL, 5)
 			self.buttons[pn] = b
 
-		hsz.Add(bsizer)
-		hsz.AddSpacer(20)
-
-		b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngRefresh, size=BTNDIM, style=wx.NO_BORDER)
-		self.Bind(wx.EVT_BUTTON, self.pressRefresh, b)
-		b.SetToolTip("Refresh printer buttons")
-		hsz.Add(b, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-
-		sz.Add(hsz)
+		sz.Add(bsizer)
 		sz.AddSpacer(10)
 		
 		self.tbx = ToolBox(cmdFolder)
@@ -116,17 +106,15 @@ class MyFrame(wx.Frame):
 
 		self.Bind(EVT_REGISTER, self.printerRegistration)
 
-		self.Show()
 
+		self.Show()
+		
 	def onToolButton(self, _, section, tool):
 		self.tbx.execute(section, tool)
 
 	def enableButtons(self):
 		for pn in self.plist:
 			self.buttons[pn].Enable(pn in self.printerList and pn not in self.dialogs.keys())
-
-	def pressRefresh(self, evt):
-		self.printerInstances.refresh()
 
 	def pressPrinter(self, evt):
 		pName = evt.GetEventObject().GetLabel()
@@ -195,6 +183,7 @@ class MyFrame(wx.Frame):
 			self.dialogs[p].sever()
 			self.dialogs[p].Destroy()
 
+		self.printerInstances.close()
 		self.Destroy()
 
 	def connectionSevered(self, pName):
