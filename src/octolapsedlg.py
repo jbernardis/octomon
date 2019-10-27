@@ -52,7 +52,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.printerGUIDList.index(self.currentPrinterGuid)
 			descr = self.printerDescList[v]
-		except IndexError:
+		except (IndexError, ValueError):
 			v = 0
 			descr = ""
 		
@@ -82,7 +82,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.renderingGUIDList.index(self.currentRenderingGuid)
 			descr = self.renderingDescList[v]
-		except IndexError:
+		except (IndexError, ValueError):
 			v = 0
 			descr = ""
 
@@ -112,7 +112,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.snapshotsGUIDList.index(self.currentSnapshotGuid)
 			descr = self.snapshotsDescList[v]
-		except IndexError:
+		except (IndexError, ValueError):
 			v = 0
 			descr = ""
 		
@@ -142,7 +142,7 @@ class OctolapseDlg(wx.Dialog):
 		try:
 			v = self.stabilizationsGUIDList.index(self.currentStabilizationGuid)
 			descr = self.stabilizationsDescList[v]
-		except IndexError:
+		except (IndexError, ValueError):
 			v = 0
 			descr = ""
 		
