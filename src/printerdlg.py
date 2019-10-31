@@ -526,15 +526,13 @@ class PrinterDlg(wx.Frame):
 		self.axisE = ImageMap(self, self.images.pngControl_e)
 		self.axisE.SetToolTip("Extrude/Retract")
 		self.axisE.setHotSpots(self.onImageClickE, imageMapE)
-		filsz.Add(self.axisE, 0, wx.ALIGN_CENTER)
-
-		filsz.AddSpacer(10)
+		filsz.Add(self.axisE, 4, wx.ALIGN_CENTER)
 
 		hsz = wx.BoxSizer(wx.HORIZONTAL)
 		hsz.AddSpacer(5)
 		st = wx.StaticText(self, wx.ID_ANY, "mm:")
 		st.SetFont(lbFont)
-		hsz.Add(st)#, 0, wx.TOP, 5)
+		hsz.Add(st, 1, wx.TOP, 5)
 		hsz.AddSpacer(5)
 
 		self.scEDist = wx.SpinCtrl(self, wx.ID_ANY, "",
@@ -543,17 +541,15 @@ class PrinterDlg(wx.Frame):
 		self.scEDist.SetRange(1, 100)
 		self.scEDist.SetValue(self.eLength)
 		self.Bind(wx.EVT_SPINCTRL, self.onScEDist, self.scEDist)
-		hsz.Add(self.scEDist)
+		hsz.Add(self.scEDist, 3)
 		hsz.AddSpacer(5)
-		filsz.Add(hsz, 0, wx.ALIGN_CENTER)
-
-		filsz.AddSpacer(10)
+		filsz.Add(hsz, 1, wx.ALIGN_CENTER)
 
 		self.cbColdExt = wx.CheckBox(self, wx.ID_ANY, "Allow Cold")  # , style=wx.ALIGN_RIGHT)
 		self.cbColdExt.SetValue(False)
 		self.cbColdExt.SetToolTip("Allow cold extrusion")
 		self.cbColdExt.SetFont(lbFont)
-		filsz.Add(self.cbColdExt)
+		filsz.Add(self.cbColdExt, 1, wx.ALIGN_CENTER)
 		self.Bind(wx.EVT_CHECKBOX, self.onCbColdExt, self.cbColdExt)
 		filsz.AddSpacer(5)
 
@@ -599,8 +595,8 @@ class PrinterDlg(wx.Frame):
 		self.fan = Fan(self, self.server)
 
 		fansz.AddSpacer(10)
-		fansz.Add(self.fan, 1, wx.ALIGN_CENTER)
-		fansz.AddSpacer(10)
+		fansz.Add(self.fan, 0, wx.ALIGN_CENTER)
+		#fansz.AddSpacer(10)
 
 		lrsz.AddSpacer(5)
 		lrsz.Add(fansz, 1, wx.EXPAND)

@@ -98,16 +98,16 @@ class GCodeDlg(wx.Frame):
 		szgc.AddSpacer(15)
 
 		szopt1 = wx.BoxSizer(wx.VERTICAL)
-		szopt1.Add(self.cbSync)
-		szopt1.Add(self.cbPrintedOnly)
+		szopt1.Add(self.cbSync, 1, wx.EXPAND)
+		szopt1.Add(self.cbPrintedOnly, 1, wx.EXPAND)
 
 		szopt2 = wx.BoxSizer(wx.VERTICAL)
-		szopt2.Add(self.cbShowPrev)
-		szopt2.Add(self.cbShowMoves)
+		szopt2.Add(self.cbShowPrev, 1, wx.EXPAND)
+		szopt2.Add(self.cbShowMoves, 1, wx.EXPAND)
 
 		szopt3 = wx.BoxSizer(wx.VERTICAL)
-		szopt3.Add(self.cbShowRetr)
-		szopt3.Add(self.cbShowRevRetr)
+		szopt3.Add(self.cbShowRetr, 1, wx.EXPAND)
+		szopt3.Add(self.cbShowRevRetr, 1, wx.EXPAND)
 
 		szoptions = wx.BoxSizer(wx.HORIZONTAL)
 		szoptions.AddSpacer(20)
@@ -122,13 +122,14 @@ class GCodeDlg(wx.Frame):
 		sz.AddSpacer(10)
 		sz.Add(szgc)
 		sz.AddSpacer(5)
-		sz.Add(szoptions, 1, wx.GROW)
+		sz.Add(szoptions)
 		sz.AddSpacer(10)
 
 		self.showLayerInfo()
 
 		self.SetSizer(sz)
 		self.Fit()
+		self.Layout()
 
 	@staticmethod
 	def formatTitle(pname, filenm):
