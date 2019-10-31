@@ -158,43 +158,6 @@ class OctolapseDlg(wx.Dialog):
 		bsizer.AddSpacer(5)
 		
 		vsz.Add(bsizer)
-		
-		self.origShowExtruderStateChanges = picfg["show_extruder_state_changes"]
-		self.cbShowExtruderStateChanges = wx.CheckBox(self, wx.ID_ANY, " Show Extruder state changes", size=IPSIZE)
-		self.cbShowExtruderStateChanges.SetValue(self.origShowExtruderStateChanges)
-		
-		self.origShowPositionChanges = picfg["show_position_changes"]
-		self.cbShowPositionChanges = wx.CheckBox(self, wx.ID_ANY, " Show Position changes", size=IPSIZE)
-		self.cbShowPositionChanges.SetValue(self.origShowPositionChanges)
-
-		self.origShowPositionStateChanges = picfg["show_position_state_changes"]
-		self.cbShowPositionStateChanges = wx.CheckBox(self, wx.ID_ANY, " Show Position state changes", size=IPSIZE)
-		self.cbShowPositionStateChanges.SetValue(self.origShowPositionStateChanges)
-		
-		self.origShowTriggerStateChanges = picfg["show_trigger_state_changes"]
-		self.cbShowTriggerStateChanges = wx.CheckBox(self, wx.ID_ANY, " Show Trigger state changes", size=IPSIZE)
-		self.cbShowTriggerStateChanges.SetValue(self.origShowTriggerStateChanges)
-
-		box = wx.StaticBox(self, wx.ID_ANY, " Information Panel ")
-		bsizer = wx.StaticBoxSizer(box, wx.VERTICAL)
-		
-		bsizer.AddSpacer(5)
-		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
-		hsz.Add(self.cbShowExtruderStateChanges)
-		hsz.Add(self.cbShowPositionChanges)
-		bsizer.Add(hsz)
-		
-		bsizer.AddSpacer(5)
-		hsz = wx.BoxSizer(wx.HORIZONTAL)
-		hsz.AddSpacer(20)
-		hsz.Add(self.cbShowPositionStateChanges)
-		hsz.Add(self.cbShowTriggerStateChanges)
-		bsizer.Add(hsz)
-		
-		bsizer.AddSpacer(5)
-		vsz.AddSpacer(10)
-		vsz.Add(bsizer, 1, wx.EXPAND)
 
 		bsz = wx.BoxSizer(wx.HORIZONTAL)
 		bsz.AddSpacer(10)
@@ -311,32 +274,3 @@ class OctolapseDlg(wx.Dialog):
 			return None
 		else:
 			return self.currentStabilizationGuid		
-		
-	def hasShowExtruderStateChanged(self):
-		cur = self.cbShowExtruderStateChanges.GetValue()
-		if self.origShowExtruderStateChanges == cur:
-			return None
-		else:
-			return cur
-		
-	def hasShowPositionChanged(self):
-		cur = self.cbShowPositionChanges.GetValue()
-		if self.origShowPositionChanges == cur:
-			return None
-		else:
-			return cur
-		
-	def hasShowPositionStateChanged(self):
-		cur = self.cbShowPositionStateChanges.GetValue()
-		if self.origShowPositionStateChanges == cur:
-			return None
-		else:
-			return cur
-		
-	def hasShowTriggerStateChanged(self):
-		cur = self.cbShowTriggerStateChanges.GetValue()
-		if self.origShowTriggerStateChanges == cur:
-			return None
-		else:
-			return cur
-

@@ -6,7 +6,9 @@ Created on May 4, 2018
 import os
 import wx.lib
 import subprocess
+import inspect
 
+from images import Images
 from imagemap import ImageMap
 from heater import Heater
 from utils import formatElapsed, approximateValue
@@ -23,7 +25,12 @@ from settings import XCOUNT
 from connectdlg import ConnectDlg
 from printerserver import RC_READ_TIMEOUT, RC_CONNECT_TIMEOUT
 from octolapsedlg import OctolapseDlg
+from olstatus import OLStatus
+from olretrieve import OLRetrieveDlg
 from timesdlg import TimesDlg
+
+import pprint
+cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 
 (FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
 (TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
@@ -46,6 +53,7 @@ MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 MENU_CAMERA_VIEW = 401
 MENU_CAMERA_OCTOLAPSE = 402
+MENU_CAMERA_RETRIEVE = 403
 MENU_TOOLS_TIMES = 501
 MENU_TOOLS_FIRMWARE = 504
 MENU_TOOLS_TERMINAL = 505
@@ -89,6 +97,7 @@ class PrinterDlg(wx.Frame):
 		self.gcdlg = None
 		self.termdlg = None
 		self.fwdlg = None
+		self.retrieveDlg = None
 		self.fwc = None
 		self.msgTimer = 0
 		self.timesdlg = None
@@ -97,6 +106,12 @@ class PrinterDlg(wx.Frame):
 		self.lpct = 0
 
 		self.toRead = 0
+
+		self.olServer = self.server.getPlugin("octolapse")
+		self.octoLapseEnabled = False
+		self.renderMsg = False
+		self.getOctoLapseEnabled()
+		self.olicons = Images(os.path.join(cmdFolder, "images", "octolapse"))
 
 		self.xySpeed = self.settings.getSetting("xySpeed", pname, 300)
 		self.zSpeed = self.settings.getSetting("zSpeed", pname, 300)
@@ -193,6 +208,7 @@ class PrinterDlg(wx.Frame):
 		menu5 = wx.Menu()
 		menu5.Append(MENU_CAMERA_VIEW, "&View", "Open a camera viewing window")
 		menu5.Append(MENU_CAMERA_OCTOLAPSE, "&Octolapse", "Configure Octolapse")
+		menu5.Append(MENU_CAMERA_RETRIEVE, "&Files", "Retrieve/Delete Octolapse Files")
 		menuBar.Append(menu5, "&Camera")
 
 		self.SetMenuBar(menuBar)
@@ -205,6 +221,7 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuCameraView, id=MENU_CAMERA_VIEW)
 		self.Bind(wx.EVT_MENU, self.MenuCameraOctolapse, id=MENU_CAMERA_OCTOLAPSE)
+		self.Bind(wx.EVT_MENU, self.MenuCameraRetrieve, id=MENU_CAMERA_RETRIEVE)
 		self.Bind(wx.EVT_MENU, self.MenuToolsTimes, id=MENU_TOOLS_TIMES)
 		self.Bind(wx.EVT_MENU, self.MenuToolsFirmware, id=MENU_TOOLS_FIRMWARE)
 		self.Bind(wx.EVT_MENU, self.MenuToolsTerminal, id=MENU_TOOLS_TERMINAL)
@@ -417,17 +434,13 @@ class PrinterDlg(wx.Frame):
 		bsizer.AddSpacer(10)
 		statsz.Add(bsizer)
 
-		boxfan = wx.StaticBox(self, wx.ID_ANY, " Fan ")
-		fansz = wx.StaticBoxSizer(boxfan, wx.VERTICAL)
-
-		self.fan = Fan(self, self.server)
-
-		fansz.AddSpacer(10)
-		fansz.Add(self.fan)
-		fansz.AddSpacer(10)
+		boxol = wx.StaticBox(self, wx.ID_ANY, " OctoLapse ")
+		olsz = wx.StaticBoxSizer(boxol, wx.VERTICAL)
+		self.olStat = OLStatus(self, self.olicons)
+		olsz.Add(self.olStat, 1, wx.ALIGN_CENTER)
 
 		statsz.AddSpacer(5)
-		statsz.Add(fansz)
+		statsz.Add(olsz, 1, wx.EXPAND)
 
 		boxJog = wx.StaticBox(self, wx.ID_ANY, " Jog ")
 		jogsz = wx.StaticBoxSizer(boxJog, wx.VERTICAL)
@@ -506,7 +519,7 @@ class PrinterDlg(wx.Frame):
 		self.axisE = ImageMap(self, self.images.pngControl_e)
 		self.axisE.SetToolTip("Extrude/Retract")
 		self.axisE.setHotSpots(self.onImageClickE, imageMapE)
-		filsz.Add(self.axisE, 1, wx.ALIGN_CENTER, 0)
+		filsz.Add(self.axisE, 0, wx.ALIGN_CENTER)
 
 		filsz.AddSpacer(10)
 
@@ -514,7 +527,7 @@ class PrinterDlg(wx.Frame):
 		hsz.AddSpacer(5)
 		st = wx.StaticText(self, wx.ID_ANY, "mm:")
 		st.SetFont(lbFont)
-		hsz.Add(st, 0, wx.TOP, 5)
+		hsz.Add(st)#, 0, wx.TOP, 5)
 		hsz.AddSpacer(5)
 
 		self.scEDist = wx.SpinCtrl(self, wx.ID_ANY, "",
@@ -523,9 +536,9 @@ class PrinterDlg(wx.Frame):
 		self.scEDist.SetRange(1, 100)
 		self.scEDist.SetValue(self.eLength)
 		self.Bind(wx.EVT_SPINCTRL, self.onScEDist, self.scEDist)
-		hsz.Add(self.scEDist, 0, wx.ALL, 0)
+		hsz.Add(self.scEDist)
 		hsz.AddSpacer(5)
-		filsz.Add(hsz)
+		filsz.Add(hsz, 0, wx.ALIGN_CENTER)
 
 		filsz.AddSpacer(10)
 
@@ -533,7 +546,7 @@ class PrinterDlg(wx.Frame):
 		self.cbColdExt.SetValue(False)
 		self.cbColdExt.SetToolTip("Allow cold extrusion")
 		self.cbColdExt.SetFont(lbFont)
-		filsz.Add(self.cbColdExt, 0, wx.ALIGN_CENTER, 0)
+		filsz.Add(self.cbColdExt)
 		self.Bind(wx.EVT_CHECKBOX, self.onCbColdExt, self.cbColdExt)
 		filsz.AddSpacer(5)
 
@@ -542,13 +555,13 @@ class PrinterDlg(wx.Frame):
 
 		self.bedHeater = Heater(self, self.server, self.server.bed.target, None, "Bed", 0, 120, self.bedPresets)
 		htrsz.AddSpacer(5)
-		htrsz.Add(self.bedHeater)
+		htrsz.Add(self.bedHeater, 1, wx.ALIGN_CENTER)
 
 		self.toolHeater = {}
 		for i in range(self.nExtr):
 			h = Heater(self, self.server, self.server.tool.target, i, "Tool%d" % i, 0, 230, self.toolPresets)
 			htrsz.AddSpacer(5)
-			htrsz.Add(h)
+			htrsz.Add(h, 1, wx.ALIGN_CENTER)
 			self.toolHeater[self.tools[i]] = h
 
 		htrsz.AddSpacer(5)
@@ -558,23 +571,35 @@ class PrinterDlg(wx.Frame):
 
 		rtsz = wx.BoxSizer(wx.VERTICAL)
 		ursz = wx.BoxSizer(wx.HORIZONTAL)
+		mrsz = wx.BoxSizer(wx.HORIZONTAL)
 		lrsz = wx.BoxSizer(wx.HORIZONTAL)
 		ursz.AddSpacer(5)
 		ursz.Add(jogsz)
 		ursz.AddSpacer(5)
-		ursz.Add(filsz)
+		ursz.Add(filsz, 1, wx.EXPAND)
 		ursz.AddSpacer(5)
 		rtsz.Add(ursz)
 
-		mrsz = wx.BoxSizer(wx.HORIZONTAL)
+		mrsz.AddSpacer(5)
+		mrsz.Add(htrsz, 1, wx.EXPAND)
 		mrsz.AddSpacer(5)
 
-		rtsz.Add(mrsz)
+		rtsz.Add(mrsz, 1, wx.EXPAND)
+
+		boxfan = wx.StaticBox(self, wx.ID_ANY, " Fan ")
+		fansz = wx.StaticBoxSizer(boxfan, wx.VERTICAL)
+
+		self.fan = Fan(self, self.server)
+
+		fansz.AddSpacer(10)
+		fansz.Add(self.fan, 1, wx.ALIGN_CENTER)
+		fansz.AddSpacer(10)
 
 		lrsz.AddSpacer(5)
-		lrsz.Add(htrsz)
+		lrsz.Add(fansz, 1, wx.EXPAND)
 		lrsz.AddSpacer(5)
-		rtsz.Add(lrsz)
+
+		rtsz.Add(lrsz, 1, wx.EXPAND)
 
 		szh.Add(rtsz)
 
@@ -603,6 +628,9 @@ class PrinterDlg(wx.Frame):
 				self.lastReportedPrinterState = s
 			except:
 				pass
+
+
+		self.updateOctoLapse(False, False, False, None)
 
 		self.server.subscribe({"job": self.jobUpdate,
 							   "message": self.messageUpdate,
@@ -836,10 +864,20 @@ class PrinterDlg(wx.Frame):
 		
 	def MenuDisconnect(self, _):
 		self.server.disconnect()
-		
+
+	def getOctoLapseEnabled(self):
+		rc, rv = self.olServer.post("loadSettings")
+		if rv is None or rc >= 400:
+			dlg = wx.MessageDialog(self, "Error querying plugin: octolapse",
+								   "Plugin Error", wx.OK | wx.ICON_ERROR)
+			dlg.ShowModal()
+			dlg.Destroy()
+			self.octoLapseEnabled = False
+		else:
+			self.octoLapseEnabled = rv['is_octolapse_enabled']
+
 	def MenuCameraOctolapse(self, _):
-		pi = self.server.getPlugin("octolapse")
-		rc, rv = pi.post("loadSettings")
+		rc, rv = self.olServer.post("loadSettings")
 		if rv is None or rc >= 400:
 			dlg = wx.MessageDialog(self, "Error querying plugin: octolapse",
 								   "Plugin Error", wx.OK | wx.ICON_ERROR)
@@ -847,7 +885,7 @@ class PrinterDlg(wx.Frame):
 			dlg.Destroy()
 			return 
 		
-		dlg = OctolapseDlg(self, self.pname, pi, rv)	
+		dlg = OctolapseDlg(self, self.pname, self.olServer, rv)
 		rc = dlg.ShowModal()
 		if rc != wx.ID_OK:
 			dlg.Destroy()
@@ -864,54 +902,40 @@ class PrinterDlg(wx.Frame):
 		for pf in sorted(hasProfileChanged.keys()):
 			p = hasProfileChanged[pf]()
 			if p is not None:
-				rc, rv = pi.post("setCurrentProfile", {"profileType": pf, "guid": p, "client_id": ""})
+				rc, rv = self.olServer.post("setCurrentProfile", {"profileType": pf, "guid": p, "client_id": ""})
 				if rv is None or not rv["success"]:
 					failedProfiles.append(pf)
 				else:
 					successfulProfiles.append(pf)
 
-		hasShowToggled = {
-			"show_extruder_state_changes": dlg.hasShowExtruderStateChanged,
-			"show_position_changes": dlg.hasShowPositionChanged,
-			"show_position_state_changes": dlg.hasShowPositionStateChanged,
-			"show_trigger_state_changes": dlg.hasShowTriggerStateChanged}
-		failedToggles = []
-		successfulToggles = []					
-		for tg in sorted(hasShowToggled.keys()):
-			p = hasShowToggled[tg]()
-			if p is not None:
-				rc, rv = pi.post("toggleInfoPanel", {"panel_type": tg})
-				if rv is None or not rv["success"]:
-					failedToggles.append("{} ({})".format(tg, p))
-				else:
-					successfulToggles.append("{} ({})".format(tg, p))
-			
 		p = dlg.hasEnabledStatusChanged()
 		enableResult = None
 		if p is not None:
-			rc, rv = pi.post("setEnabled", {"is_octolapse_enabled": p})
+			rc, rv = self.olServer.post("setEnabled", {"is_octolapse_enabled": p})
 			if rv is None or not rv["success"]:
 				# failed
 				if p:
 					enableResult = "Unable to ENABLE OctoLapse."
+					self.octoLapseEnabled = False
+
 				else:
 					enableResult = "Unable to DISABLE OctoLapse."
+					self.octoLapseEnabled = True
+
 			else:
 				# succeeded
 				if p:
 					enableResult = "OctoLapse successfully ENABLED."
+					self.octoLapseEnabled = True
 				else:
 					enableResult = "OctoLapse successfully DISABLED."
+					self.octoLapseEnabled = False
 
 		message = []			
 		if len(failedProfiles) > 0:
 			message.append("Failed profile Updates: " + ",".join(failedProfiles))
 		if len(successfulProfiles) > 0:
 			message.append("Successful profile Updates: " + ",".join(successfulProfiles))
-		if len(failedToggles) > 0:
-			message.append("Failed toggles:\n  " + "\n  ".join(failedToggles))
-		if len(successfulToggles) > 0:
-			message.append("Successful toggles:\n  " + "\n  ".join(successfulToggles))
 		if enableResult is not None:
 			message.append(enableResult)
 			
@@ -921,6 +945,16 @@ class PrinterDlg(wx.Frame):
 								   "Octolapse Configuration Result", wx.OK | wx.ICON_INFORMATION)
 			dlg.ShowModal()
 			dlg.Destroy()
+
+	def MenuCameraRetrieve(self, _):
+		if self.retrieveDlg is None:
+			self.retrieveDlg = OLRetrieveDlg(self, self.pname, self.dismissRetrieveDlg)
+		else:
+			self.retrieveDlg.Raise()
+
+	def dismissRetrieveDlg(self):
+		self.retrieveDlg.Destroy()
+		self.retrieveDlg = None
 
 	def MenuToolsTimes(self, _):
 		if self.GCode is None:
@@ -1552,6 +1586,31 @@ class PrinterDlg(wx.Frame):
 		if "text" in json.keys():
 			self.lastReportedPrinterState = json["text"]
 
+	def updateOctoLapse(self, tlactive, snapshot, rendering, msg):
+		self.olStat.setEnabled(self.octoLapseEnabled)
+		self.olStat.setActive(tlactive)
+		self.olStat.setSnapshot(snapshot)
+		self.olStat.setRender(rendering)
+		if rendering :
+			if not self.renderMsg and msg:
+				try:
+					ofn = msg.split("'")[1]
+				except:
+					print("can't parse filename from ({})".format(msg))
+					ofn = None
+
+				if ofn is None:
+					rmsg = "Output file rendered"
+				else:
+					rmsg = "Output rendered to file \"{}\"".format(ofn)
+				dlg = wx.MessageDialog(self, rmsg, 'Video Rendered', wx.OK | wx.ICON_INFORMATION)
+				dlg.ShowModal()
+				dlg.Destroy()
+
+				self.renderMsg = True
+		else:
+			self.renderMsg = False
+
 	def pluginUpdate(self, json):
 		if 'plugin' not in json.keys():
 			return
@@ -1566,6 +1625,36 @@ class PrinterDlg(wx.Frame):
 				self.lastReportedHeightInfo = json['data']['heightMessage']
 			except:
 				self.lastReportedHeightInfo = None
+
+		elif json['plugin'] == 'octolapse':
+			if json['data']['type'] in ['timelapse-start', 'state-changed', 'state-loaded',
+										'snapshot-start', 'snapshot-complete',
+										'render-start', 'render-end']:
+				try:
+					newStatus = json['data']['MainSettings']['is_octolapse_enabled']
+					self.octoLapseEnabled = newStatus
+				except KeyError:
+					pass
+
+				try:
+					msg = json['data']['msg']
+				except KeyError:
+					msg = None
+
+				try:
+					stat = json['data']['Status']
+				except KeyError:
+					stat = None
+
+				if stat:
+					self.updateOctoLapse(stat['is_timelapse_active'],
+									 stat['is_taking_snapshot'],
+									 stat['is_rendering'], msg)
+
+			else:
+				print("unprocessed type: {}".format(str(json['data']['type'])))
+				#pprint.pprint(json)
+
 		else:
 			pass
 			#print ("plugin: %s" % json['plugin'])
@@ -1727,6 +1816,11 @@ class PrinterDlg(wx.Frame):
 
 		try:
 			self.fileDlg.Destroy()
+		except:
+			pass
+
+		try:
+			self.retrieveDlg.Destroy()
 		except:
 			pass
 

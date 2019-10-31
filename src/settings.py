@@ -63,7 +63,7 @@ class Settings:
 				if setting in pathSettings:
 					v = v.replace("\\", "/")
 
-			return eval("\"%s\"" % v)
+			return v
 
 	def setSetting(self, setting, val, section="global"):
 		try:

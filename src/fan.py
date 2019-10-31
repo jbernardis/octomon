@@ -25,7 +25,7 @@ class Fan(wx.Window):
         szFan.Add(self.bPowerOff)
         szFan.AddSpacer(10 if os.name == 'posix' else 5)
 
-        self.slSpeed = wx.Slider(self, id=wx.ID_ANY, value=0, minValue=0, maxValue=255, size=(240, -1),
+        self.slSpeed = wx.Slider(self, id=wx.ID_ANY, value=0, minValue=0, maxValue=255, size=(250, -1),
                                  style=wx.SL_HORIZONTAL + wx.SL_LABELS)
         szFan.Add(self.slSpeed)
 
