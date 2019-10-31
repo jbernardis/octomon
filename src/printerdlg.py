@@ -52,8 +52,9 @@ MENU_VIEW_GCODE = 202
 MENU_CONNECT = 301
 MENU_DISCONNECT = 302
 MENU_CAMERA_VIEW = 401
-MENU_CAMERA_OCTOLAPSE = 402
-MENU_CAMERA_RETRIEVE = 403
+MENU_OCTOLAPSE_ENABLE = 601
+MENU_OCTOLAPSE_CONFIG = 602
+MENU_OCTOLAPSE_FILE = 603
 MENU_TOOLS_TIMES = 501
 MENU_TOOLS_FIRMWARE = 504
 MENU_TOOLS_TERMINAL = 505
@@ -204,11 +205,16 @@ class PrinterDlg(wx.Frame):
 		menu4.AppendSubMenu(menu3, "&Connection")
 		menu4.Append(MENU_TOOLS_TERMINAL, "Ter&minal", "View commands sent to the printer and their responses")
 		menuBar.Append(menu4, "&Tools")
-		
+
+		menu6 = wx.Menu()
+		menu6.Append(MENU_OCTOLAPSE_ENABLE, "&Enable", "Enable/disable Octolapse", wx.ITEM_CHECK)
+		menu6.Append(MENU_OCTOLAPSE_CONFIG, "&Configure", "Configure Octolapse")
+		menu6.Append(MENU_OCTOLAPSE_FILE, "&Files", "Retrieve/Delete Octolapse Files")
+		self.olMenu = menu6
+
 		menu5 = wx.Menu()
 		menu5.Append(MENU_CAMERA_VIEW, "&View", "Open a camera viewing window")
-		menu5.Append(MENU_CAMERA_OCTOLAPSE, "&Octolapse", "Configure Octolapse")
-		menu5.Append(MENU_CAMERA_RETRIEVE, "&Files", "Retrieve/Delete Octolapse Files")
+		menu5.AppendSubMenu(menu6, "&OctoLapse")
 		menuBar.Append(menu5, "&Camera")
 
 		self.SetMenuBar(menuBar)
@@ -220,8 +226,9 @@ class PrinterDlg(wx.Frame):
 		self.Bind(wx.EVT_MENU, self.MenuConnect, id=MENU_CONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuDisconnect, id=MENU_DISCONNECT)
 		self.Bind(wx.EVT_MENU, self.MenuCameraView, id=MENU_CAMERA_VIEW)
-		self.Bind(wx.EVT_MENU, self.MenuCameraOctolapse, id=MENU_CAMERA_OCTOLAPSE)
-		self.Bind(wx.EVT_MENU, self.MenuCameraRetrieve, id=MENU_CAMERA_RETRIEVE)
+		self.Bind(wx.EVT_MENU, self.MenuOctolapseEnable, id=MENU_OCTOLAPSE_ENABLE)
+		self.Bind(wx.EVT_MENU, self.MenuOctolapseConfig, id=MENU_OCTOLAPSE_CONFIG)
+		self.Bind(wx.EVT_MENU, self.MenuOctolapseFile, id=MENU_OCTOLAPSE_FILE)
 		self.Bind(wx.EVT_MENU, self.MenuToolsTimes, id=MENU_TOOLS_TIMES)
 		self.Bind(wx.EVT_MENU, self.MenuToolsFirmware, id=MENU_TOOLS_FIRMWARE)
 		self.Bind(wx.EVT_MENU, self.MenuToolsTerminal, id=MENU_TOOLS_TERMINAL)
@@ -876,7 +883,7 @@ class PrinterDlg(wx.Frame):
 		else:
 			self.octoLapseEnabled = rv['is_octolapse_enabled']
 
-	def MenuCameraOctolapse(self, _):
+	def MenuOctolapseConfig(self, _):
 		rc, rv = self.olServer.post("loadSettings")
 		if rv is None or rc >= 400:
 			dlg = wx.MessageDialog(self, "Error querying plugin: octolapse",
@@ -911,25 +918,7 @@ class PrinterDlg(wx.Frame):
 		p = dlg.hasEnabledStatusChanged()
 		enableResult = None
 		if p is not None:
-			rc, rv = self.olServer.post("setEnabled", {"is_octolapse_enabled": p})
-			if rv is None or not rv["success"]:
-				# failed
-				if p:
-					enableResult = "Unable to ENABLE OctoLapse."
-					self.octoLapseEnabled = False
-
-				else:
-					enableResult = "Unable to DISABLE OctoLapse."
-					self.octoLapseEnabled = True
-
-			else:
-				# succeeded
-				if p:
-					enableResult = "OctoLapse successfully ENABLED."
-					self.octoLapseEnabled = True
-				else:
-					enableResult = "OctoLapse successfully DISABLED."
-					self.octoLapseEnabled = False
+			enableResult = self.updateOctoLapseEnable(p)
 
 		message = []			
 		if len(failedProfiles) > 0:
@@ -946,7 +935,50 @@ class PrinterDlg(wx.Frame):
 			dlg.ShowModal()
 			dlg.Destroy()
 
-	def MenuCameraRetrieve(self, _):
+	def updateOctoLapseEnable(self, p):
+		rc, rv = self.olServer.post("setEnabled", {"is_octolapse_enabled": p})
+		if rv is None or not rv["success"]:
+			# failed
+			if p:
+				enableResult = "Unable to ENABLE OctoLapse."
+				self.octoLapseEnabled = False
+
+			else:
+				enableResult = "Unable to DISABLE OctoLapse."
+				self.octoLapseEnabled = True
+
+		else:
+			# succeeded
+			if p:
+				enableResult = "OctoLapse successfully ENABLED."
+				self.octoLapseEnabled = True
+			else:
+				enableResult = "OctoLapse successfully DISABLED."
+				self.octoLapseEnabled = False
+		return enableResult
+
+	def MenuOctolapseEnable(self, _):
+		if self.olMenu.IsChecked(MENU_OCTOLAPSE_ENABLE):
+			msg = self.updateOctoLapseEnable(True)
+			if not self.octoLapseEnabled:
+				self.olMenu.Check(MENU_OCTOLAPSE_ENABLE, False)
+			else:
+				msg = None
+		else:
+			msg = self.updateOctoLapseEnable(False)
+			if self.octoLapseEnabled:
+				self.olMenu.Check(MENU_OCTOLAPSE_ENABLE, True)
+			else:
+				msg = None
+
+		if msg is not None:
+			dlg = wx.MessageDialog(self, "\n".join(msg),
+								   "Octolapse Enable", wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+
+
+	def MenuOctolapseFile(self, _):
 		if self.retrieveDlg is None:
 			self.retrieveDlg = OLRetrieveDlg(self, self.pname, self.dismissRetrieveDlg)
 		else:
@@ -1588,6 +1620,7 @@ class PrinterDlg(wx.Frame):
 
 	def updateOctoLapse(self, tlactive, snapshot, rendering, msg):
 		self.olStat.setEnabled(self.octoLapseEnabled)
+		self.olMenu.Check(MENU_OCTOLAPSE_ENABLE, self.octoLapseEnabled)
 		self.olStat.setActive(tlactive)
 		self.olStat.setSnapshot(snapshot)
 		self.olStat.setRender(rendering)
@@ -1628,7 +1661,7 @@ class PrinterDlg(wx.Frame):
 
 		elif json['plugin'] == 'octolapse':
 			if json['data']['type'] in ['timelapse-start', 'state-changed', 'state-loaded',
-										'snapshot-start', 'snapshot-complete',
+										'snapshot-start', 'snapshot-complete', 'settings-changed',
 										'render-start', 'render-end']:
 				try:
 					newStatus = json['data']['MainSettings']['is_octolapse_enabled']
