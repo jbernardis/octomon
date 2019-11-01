@@ -50,8 +50,10 @@ class GCodeDlg(wx.Frame):
 		self.slLayer = wx.Slider(self, wx.ID_ANY, 1, 1, 10, style=wx.SL_VERTICAL+wx.SL_LABELS+wx.SL_INVERSE)
 		self.Bind(wx.EVT_SLIDER, self.onSlLayer, self.slLayer)
 		self.bUp =  wx.BitmapButton(self, wx.ID_ANY, self.images.pngUp, size=BTNDIM, style=wx.NO_BORDER)
+		self.bUp.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBUp, self.bUp)
 		self.bDown =  wx.BitmapButton(self, wx.ID_ANY, self.images.pngDown, size=BTNDIM, style=wx.NO_BORDER)
+		self.bDown.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBDown, self.bDown)
 
 		self.setSliderRange()

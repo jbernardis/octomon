@@ -379,6 +379,7 @@ class PrinterDlg(wx.Frame):
 
 		self.bPrint = wx.BitmapButton(self, wx.ID_ANY, self.images.pngPrint, size=BTNDIM, style=wx.NO_BORDER)
 		self.bPrint.SetToolTip("Start/Restart printing selected file")
+		self.bPrint.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBPrint, self.bPrint)
 		bhsizer.Add(self.bPrint)
 
@@ -386,6 +387,7 @@ class PrinterDlg(wx.Frame):
 
 		self.bPause = wx.BitmapButton(self, wx.ID_ANY, self.images.pngPause, size=BTNDIM, style=wx.NO_BORDER)
 		self.bPause.SetToolTip("Pause/Resume printing")
+		self.bPause.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBPause, self.bPause)
 		bhsizer.Add(self.bPause)
 
@@ -393,6 +395,7 @@ class PrinterDlg(wx.Frame):
 
 		self.bCancel = wx.BitmapButton(self, wx.ID_ANY, self.images.pngCancel, size=BTNDIM, style=wx.NO_BORDER)
 		self.bCancel.SetToolTip("Cancel printing")
+		self.bCancel.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBCancel, self.bCancel)
 		bhsizer.Add(self.bCancel)
 
@@ -400,6 +403,7 @@ class PrinterDlg(wx.Frame):
 
 		self.bPreheat = wx.BitmapButton(self, wx.ID_ANY, self.images.pngPreheat, size=BTNDIM, style=wx.NO_BORDER)
 		self.bPreheat.SetToolTip("Preheat based on loaded G Code")
+		self.bPreheat.SetBackgroundColour("white")
 		self.Bind(wx.EVT_BUTTON, self.onBPreheat, self.bPreheat)
 		bhsizer.Add(self.bPreheat)
 

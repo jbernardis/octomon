@@ -22,6 +22,7 @@ class OLStatus(wx.Window):
 		self.parent = parent
 		self.images = images
 		wx.Window.__init__(self, parent, wx.ID_ANY, size=(BMPDIM[0]*4, BMPDIM[1]), style=wx.NO_BORDER)
+		self.SetBackgroundColour("white")
 
 		sz = wx.BoxSizer(wx.HORIZONTAL)
 
