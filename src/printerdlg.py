@@ -4,7 +4,8 @@ Created on May 4, 2018
 @author: Jeff
 """
 import os
-import wx.lib
+#import wx
+import wx.lib.newevent
 import subprocess
 import inspect
 
@@ -29,14 +30,15 @@ from olstatus import OLStatus
 from olretrieve import OLRetrieveDlg
 from timesdlg import TimesDlg
 
-import pprint
+#import pprint
 cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspect.currentframe()))[0]))
 
-(FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()  # @UndefinedVariable
-(TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
-(LogEvent, EVT_LOGMSG) = wx.lib.newevent.NewEvent()		 # @UndefinedVariable
-(ErrorEvent, EVT_ERRMSG) = wx.lib.newevent.NewEvent()	   # @UndefinedVariable
-(GCodeEvent, EVT_GCODE) = wx.lib.newevent.NewEvent()	   # @UndefinedVariable
+(FirmwareEvent, EVT_FIRMWARE) = wx.lib.newevent.NewEvent()   # @UndefinedVariable
+(TerminalEvent, EVT_TERMMSG) = wx.lib.newevent.NewEvent()    # @UndefinedVariable
+(LogEvent, EVT_LOGMSG) = wx.lib.newevent.NewEvent()		     # @UndefinedVariable
+(ErrorEvent, EVT_ERRMSG) = wx.lib.newevent.NewEvent()	     # @UndefinedVariable
+(GCodeEvent, EVT_GCODE) = wx.lib.newevent.NewEvent()	     # @UndefinedVariable
+(OctoLapseEvent, EVT_OCTOLAPSE) = wx.lib.newevent.NewEvent() # @UndefinedVariable
 
 labelWidth = 180 if os.name == 'posix' else 120
 fieldWidth = 200
@@ -626,6 +628,7 @@ class PrinterDlg(wx.Frame):
 		self.Bind(EVT_LOGMSG, self.evtLogMessage)
 		self.Bind(EVT_ERRMSG, self.evtErrorMessage)
 		self.Bind(EVT_GCODE, self.evtUpdateGCDlg)
+		self.Bind(EVT_OCTOLAPSE, self.evtUpdateOctoLapse)
 
 		self.startTimer()
 		rc, json = self.server.state(exclude=["temperature", "sd"])
@@ -936,7 +939,7 @@ class PrinterDlg(wx.Frame):
 			dlg.Destroy()
 
 	def updateOctoLapseEnable(self, p):
-		rc, rv = self.olServer.post("setEnabled", {"is_octolapse_enabled": p})
+		_, rv = self.olServer.post("setEnabled", {"is_octolapse_enabled": p})
 		if rv is None or not rv["success"]:
 			# failed
 			if p:
@@ -1521,7 +1524,7 @@ class PrinterDlg(wx.Frame):
 		except:
 			pass
 
-	def evtUpdateGCDlg(self, evt):		
+	def evtUpdateGCDlg(self, _):		
 		downloadGCode = True
 		try:
 			rc, gc = self.server.gfile.downloadFileByName(self.selectedFileOrigin, self.selectedFilePath, to=5)
@@ -1618,32 +1621,6 @@ class PrinterDlg(wx.Frame):
 		if "text" in json.keys():
 			self.lastReportedPrinterState = json["text"]
 
-	def updateOctoLapse(self, tlactive, snapshot, rendering, msg):
-		self.olStat.setEnabled(self.octoLapseEnabled)
-		self.olMenu.Check(MENU_OCTOLAPSE_ENABLE, self.octoLapseEnabled)
-		self.olStat.setActive(tlactive)
-		self.olStat.setSnapshot(snapshot)
-		self.olStat.setRender(rendering)
-		if rendering :
-			if not self.renderMsg and msg:
-				try:
-					ofn = msg.split("'")[1]
-				except:
-					print("can't parse filename from ({})".format(msg))
-					ofn = None
-
-				if ofn is None:
-					rmsg = "Output file rendered"
-				else:
-					rmsg = "Output rendered to file \"{}\"".format(ofn)
-				dlg = wx.MessageDialog(self, rmsg, 'Video Rendered', wx.OK | wx.ICON_INFORMATION)
-				dlg.ShowModal()
-				dlg.Destroy()
-
-				self.renderMsg = True
-		else:
-			self.renderMsg = False
-
 	def pluginUpdate(self, json):
 		if 'plugin' not in json.keys():
 			return
@@ -1680,9 +1657,8 @@ class PrinterDlg(wx.Frame):
 					stat = None
 
 				if stat:
-					self.updateOctoLapse(stat['is_timelapse_active'],
-									 stat['is_taking_snapshot'],
-									 stat['is_rendering'], msg)
+					evt = OctoLapseEvent(tl=stat['is_timelapse_active'], ss=stat['is_taking_snapshot'], rnd=stat['is_rendering'], msg=msg)
+					wx.PostEvent(self, evt)
 
 			else:
 				print("unprocessed type: {}".format(str(json['data']['type'])))
@@ -1692,6 +1668,35 @@ class PrinterDlg(wx.Frame):
 			pass
 			#print ("plugin: %s" % json['plugin'])
 			#pprint.pprint(json)
+
+	def evtUpdateOctoLapse(self, evt):			
+		self.updateOctoLapse(evt.tl, evt.cc, evt.rnd, evt.msg)
+
+	def updateOctoLapse(self, tlactive, snapshot, rendering, msg):
+		self.olStat.setEnabled(self.octoLapseEnabled)
+		self.olMenu.Check(MENU_OCTOLAPSE_ENABLE, self.octoLapseEnabled)
+		self.olStat.setActive(tlactive)
+		self.olStat.setSnapshot(snapshot)
+		self.olStat.setRender(rendering)
+		if rendering :
+			if not self.renderMsg and msg:
+				try:
+					ofn = msg.split("'")[1]
+				except:
+					print("can't parse filename from ({})".format(msg))
+					ofn = None
+
+				if ofn is None:
+					rmsg = "Output file rendered"
+				else:
+					rmsg = "Output rendered to file \"{}\"".format(ofn)
+				dlg = wx.MessageDialog(self, rmsg, 'Video Rendered', wx.OK | wx.ICON_INFORMATION)
+				dlg.ShowModal()
+				dlg.Destroy()
+
+				self.renderMsg = True
+		else:
+			self.renderMsg = False
 
 	def onImageClickXY(self, command):
 		try:

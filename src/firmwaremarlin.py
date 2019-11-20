@@ -1,6 +1,6 @@
 import os
 import wx
-import wx.lib.newevent
+#import wx.lib.newevent
 import configparser
 
 from fwsettings import FwSettings
@@ -47,7 +47,7 @@ def getFirmwareProfile(fn, container, grpinfo, grporder):
 				v = str(cfg.get(section, k))
 
 			container.setValue(k, v)
-   	
+	
 	return True, "Firmware profile file %s successfully read" % fn
 
 
@@ -139,7 +139,7 @@ class FirmwareDlg(wx.Frame):
 		self.settings = self.parent.settings
 
 		self.eepromFileName = "eeprom.%s.marlin" % pname
-		rc, msg = getFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
+		_, msg = getFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 		self.sizer = wx.GridBagSizer()
@@ -317,7 +317,7 @@ class FirmwareDlg(wx.Frame):
 			self.itemMap[i][2].setText(v)
 			self.eeprom.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
+		_, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 	def onCopyEEPromToFlash(self, _):
@@ -332,7 +332,7 @@ class FirmwareDlg(wx.Frame):
 			self.itemMap[i][1].setText(v)
 			self.flash.setValue(i, v)
 
-		rc, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
+		_, msg = putFirmwareProfile(self.eepromFileName, self.eeprom, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 		self.enableButtons(True)
 
@@ -390,7 +390,7 @@ class FirmwareDlg(wx.Frame):
 		if ext == "":
 			path += ".fw"
 
-		rc, msg = putFirmwareProfile(path, self.working, self.grpinfo, self.grporder)
+		_, msg = putFirmwareProfile(path, self.working, self.grpinfo, self.grporder)
 		self.parent.logMessage(msg)
 
 	def onClose(self, _):
