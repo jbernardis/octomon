@@ -1670,7 +1670,7 @@ class PrinterDlg(wx.Frame):
 			#pprint.pprint(json)
 
 	def evtUpdateOctoLapse(self, evt):			
-		self.updateOctoLapse(evt.tl, evt.cc, evt.rnd, evt.msg)
+		self.updateOctoLapse(evt.tl, evt.ss, evt.rnd, evt.msg)
 
 	def updateOctoLapse(self, tlactive, snapshot, rendering, msg):
 		self.olStat.setEnabled(self.octoLapseEnabled)
