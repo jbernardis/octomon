@@ -871,7 +871,6 @@ class PrinterDlg(wx.Frame):
 			si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 			si.wShowWindow = subprocess.SW_HIDE
 			self.pWebcam = subprocess.Popen(cmdList, shell=True, stderr=subprocess.DEVNULL, startupinfo=si)
-			print("5")
 
 	def MenuConnect(self, _):
 		dftPort = self.settings.getSetting("port", self.pname, "/dev/ttyACM0")
