@@ -43,6 +43,7 @@ cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspe
 labelWidth = 180 if os.name == 'posix' else 120
 fieldWidth = 200
 spacerWidth = 5
+bltouchindent = 75 if os.name == 'posix' else 75
 stStyle = wx.ST_NO_AUTORESIZE + wx.ALIGN_RIGHT
 
 BTNDIM = (48, 48) if os.name == 'posix' else (32, 32)
@@ -445,7 +446,7 @@ class PrinterDlg(wx.Frame):
 			bsizer.Add(hsz)
 
 		bsizer.AddSpacer(10)
-		statsz.Add(bsizer)
+		statsz.Add(bsizer, 1, wx.EXPAND)
 
 		boxol = wx.StaticBox(self, wx.ID_ANY, " OctoLapse ")
 		olsz = wx.StaticBoxSizer(boxol, wx.VERTICAL)
@@ -454,6 +455,49 @@ class PrinterDlg(wx.Frame):
 
 		statsz.AddSpacer(5)
 		statsz.Add(olsz, 1, wx.EXPAND)
+		
+		if self.hasZProbe:
+			boxbltouch = wx.StaticBox(self, wx.ID_ANY, " BL Touch ")
+			bltsz = wx.StaticBoxSizer(boxbltouch, wx.HORIZONTAL)
+			
+			btnsz = wx.BoxSizer(wx.HORIZONTAL)
+			btnsz.AddSpacer(bltouchindent)
+			
+			b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngBldown, size=BTNDIM, style=wx.NO_BORDER)
+			b.SetToolTip("Lower the BL Touch probe")
+			b.SetBackgroundColour("white")
+			self.Bind(wx.EVT_BUTTON, self.onBBLDown, b)
+			self.bBlDown = b
+			btnsz.Add(b)
+			btnsz.AddSpacer(20)
+			
+			b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngBlup, size=BTNDIM, style=wx.NO_BORDER)
+			b.SetToolTip("Raise the BL Touch probe")
+			b.SetBackgroundColour("white")
+			self.Bind(wx.EVT_BUTTON, self.onBBLUp, b)
+			self.bBlUp = b
+			btnsz.Add(b)
+			btnsz.AddSpacer(20)
+			
+			b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngBlcycle, size=BTNDIM, style=wx.NO_BORDER)
+			b.SetToolTip("Cycle the BL Touch probe")
+			b.SetBackgroundColour("white")
+			self.Bind(wx.EVT_BUTTON, self.onBBLCycle, b)
+			self.bBlCycle = b
+			btnsz.Add(b)
+			btnsz.AddSpacer(20)
+			
+			b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngBlreset, size=BTNDIM, style=wx.NO_BORDER)
+			b.SetToolTip("Reset the BL Touch probe")
+			b.SetBackgroundColour("white")
+			self.Bind(wx.EVT_BUTTON, self.onBBLReset, b)
+			self.bBlReset = b
+			btnsz.Add(b)
+			
+			bltsz.Add(btnsz, 0, wx.ALIGN_CENTER)
+
+			statsz.AddSpacer(5)
+			statsz.Add(bltsz, 1, wx.EXPAND)
 
 		boxJog = wx.StaticBox(self, wx.ID_ANY, " Jog ")
 		jogsz = wx.StaticBoxSizer(boxJog, wx.VERTICAL)
@@ -826,8 +870,9 @@ class PrinterDlg(wx.Frame):
 			si = subprocess.STARTUPINFO()
 			si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
 			si.wShowWindow = subprocess.SW_HIDE
-			self.pWebcam = subprocess.Popen(cmdList, stderr=subprocess.DEVNULL, startupinfo=si)
-		
+			self.pWebcam = subprocess.Popen(cmdList, shell=True, stderr=subprocess.DEVNULL, startupinfo=si)
+			print("5")
+
 	def MenuConnect(self, _):
 		dftPort = self.settings.getSetting("port", self.pname, "/dev/ttyACM0")
 		dftBaudrate = self.settings.getSetting("baudrate", self.pname, 115200)
@@ -1164,6 +1209,11 @@ class PrinterDlg(wx.Frame):
 		self.scEDist.Enable(flag)
 		self.scXYSpeed.Enable(flag)
 		self.scZSpeed.Enable(flag)
+		if self.hasZProbe:
+			self.bBlDown.Enable(flag)
+			self.bBlUp.Enable(flag)
+			self.bBlCycle.Enable(flag)
+			self.bBlReset.Enable(flag)
 		self.movementEnabled = flag
 
 	def enableTemperatureControls(self, flag=True):
@@ -1263,6 +1313,18 @@ class PrinterDlg(wx.Frame):
 			self.bPreheat.SetBitmap(self.images.pngPreheat)
 
 		self.doPreheat = not self.doPreheat
+		
+	def onBBLDown(self, _):
+		self.server.command("M280 P0 S10")
+		
+	def onBBLUp(self, _):
+		self.server.command("M280 P0 S90")
+		
+	def onBBLCycle(self, _):
+		self.server.command("M280 P0 S120")
+		
+	def onBBLReset(self, _):
+		self.server.command("M280 P0 S160")
 
 	def setPreheatButton(self, nz):
 		if nz != 0:
