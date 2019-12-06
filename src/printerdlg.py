@@ -452,6 +452,7 @@ class PrinterDlg(wx.Frame):
 		olsz = wx.StaticBoxSizer(boxol, wx.VERTICAL)
 		self.olStat = OLStatus(self, self.olicons)
 		olsz.Add(self.olStat, 1, wx.ALIGN_CENTER)
+		olsz.AddSpacer(10)
 
 		statsz.AddSpacer(5)
 		statsz.Add(olsz, 1, wx.EXPAND)

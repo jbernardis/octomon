@@ -8,6 +8,7 @@ import os
 from PIL.PcfFontFile import sz
 
 BMPDIM = (48, 48)
+spacing = 20
 
 olEnabled = "OctoLapse is enabled"
 olNotEnabled = "Octolapse is NOT enabled"
@@ -22,7 +23,7 @@ class OLStatus(wx.Window):
 	def __init__(self, parent, images):
 		self.parent = parent
 		self.images = images
-		wx.Window.__init__(self, parent, wx.ID_ANY, size=(BMPDIM[0]*4+15, BMPDIM[1]), style=wx.NO_BORDER)
+		wx.Window.__init__(self, parent, wx.ID_ANY, size=(BMPDIM[0]*4+spacing*3, BMPDIM[1]), style=wx.NO_BORDER)
 		self.SetBackgroundColour("white")
 
 		sz = wx.BoxSizer(wx.HORIZONTAL)
@@ -30,19 +31,19 @@ class OLStatus(wx.Window):
 		self.bEnabled = wx.StaticBitmap(self, wx.ID_ANY, self.images.pngEnabled_red, size=BMPDIM)
 		self.bEnabled.SetToolTip(olNotEnabled)
 		sz.Add(self.bEnabled)
-		sz.AddSpacer(5);
+		sz.AddSpacer(spacing);
 		self.enabled = False
 
 		self.bActive = wx.StaticBitmap(self, wx.ID_ANY, self.images.pngActive_off, size=BMPDIM)
 		self.bActive.SetToolTip(olNotEnabled)
 		sz.Add(self.bActive)
-		sz.AddSpacer(5)
+		sz.AddSpacer(spacing)
 		self.active = False
 
 		self.bSnapshot = wx.StaticBitmap(self, wx.ID_ANY, self.images.pngSnapshot_off, size=BMPDIM)
 		self.bSnapshot.SetToolTip(olNotEnabled)
 		sz.Add(self.bSnapshot)
-		sz.AddSpacer(5)
+		sz.AddSpacer(spacing)
 		self.snapshot = False
 
 		self.bRender = wx.StaticBitmap(self, wx.ID_ANY, self.images.pngRender_off, size=BMPDIM)
@@ -52,7 +53,6 @@ class OLStatus(wx.Window):
 		
 		vsz = wx.BoxSizer(wx.VERTICAL)
 		vsz.Add(sz)
-		vsz.AddSpacer(5)
 
 		self.SetSizer(vsz)
 		self.Layout()
