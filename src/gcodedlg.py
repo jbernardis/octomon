@@ -26,6 +26,7 @@ class GCodeDlg(wx.Frame):
 		self.images = images
 		self.exitDlg = cbexit
 		self.nExtr = self.parent.nExtr
+		self.layerCount = 0
 		if self.gcode:
 			self.sTotalTime = " / " + formatElapsed(self.gcode.getPrintTime())
 			self.filament = self.gcode.getFilament()
@@ -166,6 +167,7 @@ class GCodeDlg(wx.Frame):
 		self.slLayer.Enable(n != 0)
 		self.bUp.Enable(n != 0)
 		self.bDown.Enable(n != 0)
+		self.layerCount = n
 
 	def setPrintPosition(self, pos):
 		if pos is None:
@@ -194,14 +196,15 @@ class GCodeDlg(wx.Frame):
 			lblTime = ""
 			lblFilament = ""
 		else:
-			lblHt, lblTime, lblFilament = self.formatLayerInfo(l)
+			lx = self.gcf.getCurrentLayerNum()
+			lblHt, lblTime, lblFilament = self.formatLayerInfo(l, lx)
 			
 		self.stHeight.SetLabel(lblHt)
 		self.stTime.SetLabel(lblTime)
 		self.stFilament.SetLabel(lblFilament)
 		
-	def formatLayerInfo(self, l):
-		sHt = "Height: {:.2f}".format(l.getHeight())
+	def formatLayerInfo(self, l, lx):
+		sHt = "Height: {:.2f}  Layer: {:d} / {:d}".format(l.getHeight(), lx+1, self.layerCount)
 		
 		sTm = "  Print time: {:s}{:s}".format(formatElapsed(l.getLayerTime()), self.sTotalTime)
 		o = l.getOffsets()

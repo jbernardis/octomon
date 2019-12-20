@@ -40,10 +40,13 @@ cmdFolder = os.path.realpath(os.path.abspath(os.path.split(inspect.getfile(inspe
 (GCodeEvent, EVT_GCODE) = wx.lib.newevent.NewEvent()	     # @UndefinedVariable
 (OctoLapseEvent, EVT_OCTOLAPSE) = wx.lib.newevent.NewEvent() # @UndefinedVariable
 
+LOG_MESSAGE = 0
+LOG_ENDPROBE = 1
+
 labelWidth = 180 if os.name == 'posix' else 120
 fieldWidth = 200
 spacerWidth = 5
-bltouchindent = 75 if os.name == 'posix' else 75
+bltouchindent = 45 if os.name == 'posix' else 45
 stStyle = wx.ST_NO_AUTORESIZE + wx.ALIGN_RIGHT
 
 BTNDIM = (48, 48) if os.name == 'posix' else (32, 32)
@@ -110,6 +113,8 @@ class PrinterDlg(wx.Frame):
 		self.lpct = 0
 
 		self.toRead = 0
+		self.probeState = 0
+		self.probeText = []
 
 		self.olServer = self.server.getPlugin("octolapse")
 		self.octoLapseEnabled = False
@@ -493,6 +498,14 @@ class PrinterDlg(wx.Frame):
 			b.SetBackgroundColour("white")
 			self.Bind(wx.EVT_BUTTON, self.onBBLReset, b)
 			self.bBlReset = b
+			btnsz.Add(b)
+			btnsz.AddSpacer(20)
+			
+			b = wx.BitmapButton(self, wx.ID_ANY, self.images.pngBlprobe, size=BTNDIM, style=wx.NO_BORDER)
+			b.SetToolTip("Probe for bed level")
+			b.SetBackgroundColour("white")
+			self.Bind(wx.EVT_BUTTON, self.onBBLProbe, b)
+			self.bBlProbe = b
 			btnsz.Add(b)
 			
 			bltsz.Add(btnsz, 0, wx.ALIGN_CENTER)
@@ -1214,6 +1227,7 @@ class PrinterDlg(wx.Frame):
 			self.bBlUp.Enable(flag)
 			self.bBlCycle.Enable(flag)
 			self.bBlReset.Enable(flag)
+			self.bBlProbe.Enable(flag)
 		self.movementEnabled = flag
 
 	def enableTemperatureControls(self, flag=True):
@@ -1325,6 +1339,21 @@ class PrinterDlg(wx.Frame):
 		
 	def onBBLReset(self, _):
 		self.server.command("M280 P0 S160")
+		
+	def onBBLProbe(self, _):
+		if self.probeState != 0:
+			self.probeState = 0
+			self.enableMovementControls()
+			self.logMessage("Resetting probe status")
+			return
+		
+		self.enableMovementControls(False)
+		self.bBlProbe.Enable(True)
+		self.server.command("G28")
+		self.server.command("G29")
+		self.probeText = []
+		self.probeState = 1
+		self.logMessage("Waiting for probe report")
 
 	def setPreheatButton(self, nz):
 		if nz != 0:
@@ -1564,6 +1593,9 @@ class PrinterDlg(wx.Frame):
 
 		msg = msg.strip()
 		if len(msg) == 0:
+			if self.probeState == 2:
+				evt = LogEvent(message=None, type=LOG_ENDPROBE)
+				wx.PostEvent(self, evt)
 			return
 
 		if msg.startswith("T:"):
@@ -1572,10 +1604,26 @@ class PrinterDlg(wx.Frame):
 		if msg.startswith("X:"):
 			return
 
-		evt = LogEvent(message=msg)
+		evt = LogEvent(message=msg, type=LOG_MESSAGE)
 		wx.PostEvent(self, evt)
 
 	def evtLogMessage(self, evt):
+		if self.probeState == 2 and evt.type == LOG_ENDPROBE:
+			self.probeState = 0
+			dlg = wx.MessageDialog(self, "\n".join(self.probeText), 'Probe Results', wx.OK | wx.ICON_INFORMATION)
+			dlg.ShowModal()
+			dlg.Destroy()
+			
+			self.probeText = []
+			self.logMessage("Probing completed")
+			return
+			
+		if self.probeState == 2 or (self.probeState == 1 and "evel" in evt.message):
+			self.probeState = 2
+			self.probeText.append(evt.message)
+			self.logMessage("Receiving probe report")
+			return
+			
 		self.logMessage(evt.message)
 
 	def evtErrorMessage(self, evt):

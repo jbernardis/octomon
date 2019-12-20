@@ -209,6 +209,11 @@ class GcFrame (wx.Window):
 
 	def getCurrentLayerNum(self):
 		return self.currentlx
+	
+	def getMaxLayerNum(self):
+		if self.gcode is None:
+			return 0
+		return self.gcode.layerCount()-1
 
 	def getCurrentLayer(self):
 		if self.currentlx is None:

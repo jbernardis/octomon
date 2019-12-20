@@ -6,8 +6,6 @@
 #  allow upload to sd - also allow delete and select - also, the printer status report tells us if the sd is ready -
 #  should use that to enable/disable - update marlin on cuboid
 #
-#  clear file selection
-#
 #  Need to make sure when downloading the selected file for gcode monitor that subdirectories are represented in the
 #  job update.   Right now, I see origin and name, not path
 #
