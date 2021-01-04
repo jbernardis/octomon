@@ -33,10 +33,19 @@ class MyListener(object):
 class PrinterInstances:
 	def __init__(self, plist, settings, registerPrinter):
 		self.servers = {}
+		self.staticServers = {}
 		self.priorServers = {}
 		self.apiKeys = {}
 		for p in plist:
-			self.apiKeys[p] = settings.getSetting("apiKey", p)
+			apikey= settings.getSetting("apiKey", p)
+			ip = settings.getSetting("ip", p)
+			if ip is not None:
+				ps = PrinterServer(apikey, ip)
+				ps.addPlugin("octolapse")
+				ps.addPlugin("softwareupdate")
+				self.staticServers[p] = ps
+			else:
+				self.apiKeys[p] = apikey
 
 		self.registerPrinter = registerPrinter
 		self.zeroconf = None
@@ -46,6 +55,8 @@ class PrinterInstances:
 		self.dtmr = None
 		self.tmr = None
 		self.refresh()
+		for p in self.staticServers.keys():
+			self.registerPrinter("add", p)
 
 	def refresh(self):
 		if self.zeroconf:
@@ -82,8 +93,11 @@ class PrinterInstances:
 	def getPrinterServer(self, pName):
 		try:
 			return self.servers[pName]
-		except IndexError:
-			return None
+		except KeyError:
+			try:
+				return self.staticServers[pName]
+			except KeyError:
+				return None
 
 	def close(self):
 		self.tmr.cancel()
